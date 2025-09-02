@@ -1,0 +1,61 @@
+thead th {
+        font-size: 13px;
+        padding: 6px 8px;
+        text-align: center;
+        word-break: break-word;
+    }
+
+/* ==========================
+   Add Billing Modal Styling
+   ========================== */
+
+#addBillingModal .modal-content {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 1px solid #dee2e6;
+    background: #fff;
+}
+
+#addBillingModal .modal-header {
+    background-color: #0d6efd; /* Matches the screenshot: strong Bootstrap blue */
+    color: #fff;
+    border-bottom: 1px solid #dee2e6;
+    padding: 10px 16px;
+}
+
+#addBillingModal .modal-title {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+#addBillingModal .modal-body {
+    padding: 16px;
+}
+
+#addBillingModal .form-label {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+#addBillingModal .form-control,
+#addBillingModal .form-select {
+    font-size: 13px;
+    padding: 6px 8px;
+    border-radius: 4px;
+}
+
+#addBillingModal .modal-footer {
+    border-top: 1px solid #dee2e6;
+    padding: 10px 16px;
+}
+
+#addBillingModal .btn {
+    font-size: 13px;
+    padding: 6px 12px;
+}
+
+#addBillingModal input[readonly] {
+    background-color: #f8f9fa;
+    color: #495057;
+}

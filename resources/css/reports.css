@@ -1,0 +1,8 @@
+@media print {
+    .btn, .form-inline, .pagination, nav, header, footer {
+        display: none !important;
+    }
+    table {
+        width: 100%;
+    }
+}

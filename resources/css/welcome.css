@@ -1,0 +1,75 @@
+html, body {
+            height: auto;
+            overflow-y: auto;
+            margin: 0;
+            padding: 0;
+        }
+
+        .hero {
+            background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
+                url('../images/water-tower-with-clouds-passing.webp');
+                background-size: cover;
+                background-position: center;
+                height: 100vh;
+                color: white;
+        }
+
+
+        .section-padding {
+            padding: 60px 0;
+        }
+
+        .nav-link:hover {
+        text-decoration: underline;
+        opacity: 0.8;
+
+    }
+        .connect-section {
+    position: relative;
+    overflow: hidden;
+}
+
+        .split-background {
+            position: relative;
+            width: 100%;
+            min-height: 450px;
+        }
+
+        .bg-left,
+        .bg-right {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 50%;
+            z-index: 0;
+        }
+
+        .bg-left {
+            left: 0;
+            background-color: #00bcd4; /* Aqua Blue */
+        }
+
+        .bg-right {
+            right: 0;
+            background-color: #0277bd; /* Darker Blue */
+        }
+
+        .z-1 {
+            position: relative;
+            z-index: 1;
+        }
+        .announcement-section {
+            background-color: #37BEB0;
+            padding: 60px 0;
+        }
+
+.modal-content {
+  border-radius: 15px;
+  border: none;
+}
+.modal-header {
+  background-color: #0C6170;
+  color: white;
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+}

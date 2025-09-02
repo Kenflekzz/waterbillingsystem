@@ -1,0 +1,25 @@
+.sb-sidenav .nav-link {
+        font-size: 18px; /* Or adjust as needed */
+        padding: 12px 20px;
+    }
+
+    /* Adjust icon size */
+    .sb-sidenav .sb-nav-link-icon i {
+        font-size: 1.5rem; /* or 1.25rem, 1.5rem for larger */
+    }
+
+    /* Make sidebar fill height & space between */
+    .sb-sidenav-menu {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .sb-sidenav-menu .nav {
+        flex-grow: 1;
+    }
+
+    /* Optional: Slight gap between items */
+    .sb-sidenav .nav-link + .nav-link {
+        margin-top: 20px;
+    }
