@@ -1,45 +1,66 @@
 <template>
-  <div class="login-wrapper vh-100 d-flex align-items-center justify-content-center">
-    <div class="card shadow-sm p-4 w-100" style="max-width: 400px;">
-      <h2 class="text-center mb-4">User Login</h2>
-      <form @submit.prevent="login">
-        <div class="mb-3">
-          <label for="meter_number" class="form-label">Meter Number</label>
-          <input
-            v-model="meter_number"
-            type="text"
-            class="form-control"
-            id="meter_number"
-            required
-          />
-        </div>
+  <div>
+    <!-- ✅ Header Component -->
+    <Header
+      :homepage="{
+        header_bg: '#741aac',
+        logo: '/images/MAGALLANES_LOGO.png',
+        header_title: 'Magallanes Water Billing System',
+        nav_home: 'Home',
+        nav_bills: 'Bills',
+        nav_contact: 'Contact Us',
+        sign_in_text: 'Sign In'
+      }"
+      :showSignIn="false"
+    />
 
-        <div class="mb-3">
-          <label for="password" class="form-label">Password</label>
-          <input
-            v-model="password"
-            type="password"
-            class="form-control"
-            id="password"
-            required
-          />
-        </div>
+    <!-- ✅ Login Form -->
+    <div class="login-wrapper vh-100 d-flex align-items-center justify-content-center">
+      <div class="card shadow-sm p-4 w-100" style="max-width: 400px;">
+        <h2 class="text-center mb-4">User Login</h2>
 
-        <button type="submit" class="btn btn-primary w-100">Login</button>
+        <form @submit.prevent="login">
+          <!-- Email -->
+          <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input v-model="email" type="email" class="form-control" id="email" />
+          </div>
 
-        <div v-if="error" class="alert alert-danger mt-3" role="alert">
-          {{ error }}
-        </div>
-      </form>
+          <!-- Password -->
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input v-model="password" type="password" class="form-control" id="password" />
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100">Login</button>
+
+          <!-- Error Message -->
+          <div v-if="error" class="alert alert-danger mt-3" role="alert">
+            {{ error }}
+          </div>
+
+          <!-- Register Link -->
+          <div class="text-center mt-3">
+            <p class="mb-0">
+              Don’t have an account?
+              <router-link to="/user/register" class="text-primary fw-bold">Register here</router-link>
+            </p>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
+import Header from './Header.vue';
+
 export default {
+  name: "UserLogin",
+  components: { Header },
   data() {
     return {
-      meter_number: '',
+      email: '',
       password: '',
       error: ''
     };
@@ -47,21 +68,21 @@ export default {
   methods: {
     async login() {
       this.error = '';
+
       try {
         const response = await fetch('/user/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'X-CSRF-TOKEN': document
-              .querySelector('meta[name="csrf-token"]')
-              ?.getAttribute('content') || ''
+            'X-CSRF-TOKEN':
+              document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
           },
           body: JSON.stringify({
-            meter_number: this.meter_number,
+            email: this.email,
             password: this.password
           }),
-          credentials: 'include' // include session cookies
+          credentials: 'include'
         });
 
         const data = await response.json();
@@ -71,9 +92,10 @@ export default {
           return;
         }
 
-        // ✅ Force full page reload to Blade dashboard
-        window.location.href = data.redirect;
-
+        // Redirect to dashboard
+        setTimeout(() => {
+          window.location.assign(data.redirect);
+        }, 50);
       } catch (err) {
         this.error = 'Login failed: ' + err.message;
       }
@@ -87,8 +109,8 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
-  background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)),
+  min-height: 80vh;
+  background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
     url('/images/Flag_of_Magallanes,_Agusan_del_Norte.webp') no-repeat center center;
   background-size: cover;
 }

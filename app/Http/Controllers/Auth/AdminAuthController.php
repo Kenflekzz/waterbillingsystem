@@ -31,8 +31,27 @@ public function login(Request $request)
 
 public function dashboard()
 {
-    return view('admin.admindashboard');
+    // Get all consumers (you can adjust which columns to show)
+    $consumers = Clients::select('id', 'full_name as name')->get();
+
+    // Build a distinct list of barangays from Clients table
+    $barangayNames = Clients::whereNotNull('barangay')
+                            ->where('barangay', '!=', '')
+                            ->distinct()
+                            ->pluck('barangay');
+
+    // Make an array of objects with id + name so Blade can do $b->id / $b->name
+    $barangays = $barangayNames->values()->map(function ($name, $index) {
+        return (object)[
+            'id'   => $index + 1, // synthetic id; replace with actual id if you have a barangays table
+            'name' => $name,
+        ];
+    });
+
+    // Pass them to the view
+    return view('admin.admindashboard', compact('barangays', 'consumers'));
 }
+
 
 public function logout( Request $request)
 {

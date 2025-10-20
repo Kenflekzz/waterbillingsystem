@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Billing Statement</title>
+    <link rel="icon" href="{{ asset($homepage->favicon ?? 'images/MAGALLANES_LOGO.png') }}" type="image/x-icon">
     @vite('resources/css/print.css')
 </head>
 <body onload="window.print()">

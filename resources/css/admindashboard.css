@@ -1,25 +1,102 @@
+/* Sidebar links */
 .sb-sidenav .nav-link {
-        font-size: 18px; /* Or adjust as needed */
-        padding: 12px 20px;
-    }
+    font-size: 20px;        /* sidebar text size */
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    color: #f8f9fa;         /* default text color */
+    transition: color 0.3s ease;
+}
 
-    /* Adjust icon size */
-    .sb-sidenav .sb-nav-link-icon i {
-        font-size: 1.5rem; /* or 1.25rem, 1.5rem for larger */
-    }
+/* Sidebar icons - Font Awesome 6 uses <svg> */
+.sb-sidenav .sb-nav-link-icon svg {
+    width: 28px;            /* adjust icon size */
+    height: 28px;           /* adjust icon size */
+    margin-right: 10px;     /* space between icon & text */
+    color: #f8f9fa;         /* default icon color */
+    flex-shrink: 0;         /* prevents squishing */
+    transition: color 0.3s ease;
+}
 
-    /* Make sidebar fill height & space between */
-    .sb-sidenav-menu {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
+/* Space between menu items */
+.sb-sidenav .nav-link + .nav-link {
+    margin-top: 20px;
+}
 
-    .sb-sidenav-menu .nav {
-        flex-grow: 1;
-    }
+/* Sidebar height fill */
+.sb-sidenav-menu {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+.sb-sidenav-menu .nav {
+    flex-grow: 1;
+}
 
-    /* Optional: Slight gap between items */
-    .sb-sidenav .nav-link + .nav-link {
-        margin-top: 20px;
-    }
+/* Hover effect */
+.sb-sidenav .nav-link:hover {
+    color: #ffc107; /* text highlight */
+}
+.sb-sidenav .nav-link:hover .sb-nav-link-icon svg {
+    color: #ffc107; /* icon highlight */
+}
+
+/* Active state */
+.sb-sidenav .nav-link.active {
+    background-color: #343a40;     /* darker background */
+    color: #ffc107;                /* text highlight */
+    border-left: 4px solid #ffc107; /* modern highlight bar */
+}
+.sb-sidenav .nav-link.active .sb-nav-link-icon svg {
+    color: #ffc107; /* icon highlight */
+}
+/* Sidebar links */
+.sb-sidenav .nav-link {
+    font-size: 18px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+}
+
+/* Sidebar icons - uniform size & alignment */
+.sb-sidenav .sb-nav-link-icon i {
+    font-size: 1.5rem;   /* icon size */
+    width: 32px;         /* keeps alignment with text */
+    text-align: center;
+    margin-right: 8px;
+    color: #f8f9fa;
+    transition: color 0.3s ease;
+}
+
+/* Space between menu items */
+.sb-sidenav .nav-link + .nav-link {
+    margin-top: 20px;
+}
+
+/* Sidebar height fill */
+.sb-sidenav-menu {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+.sb-sidenav-menu .nav {
+    flex-grow: 1;
+}
+
+/* Hover effect */
+.sb-sidenav .nav-link:hover .sb-nav-link-icon i {
+    color: #ffc107;
+}
+.sb-sidenav .nav-link:hover {
+    color: #ffc107;
+}
+
+/* Active state */
+.sb-sidenav .nav-link.active {
+    background-color: #343a40;
+    color: #ffc107;
+    border-left: 4px solid #ffc107;
+}
+.sb-sidenav .nav-link.active .sb-nav-link-icon i {
+    color: #ffc107;
+}

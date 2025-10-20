@@ -11,35 +11,58 @@ use App\Http\Controllers\TotalSubscribersController;
 use App\Http\Controllers\TotalUnpaidController;
 use App\Http\Controllers\TotalPaidController;
 use App\Http\Controllers\TotalDisconnectedController;
+use App\Http\Controllers\HomepageController;
+use App\Http\Controllers\MessageController;
+use App\Http\Controllers\BehaviorController;
+use App\Models\Homepage;
 
 // --------------------
 // Home Route
 // --------------------
+
+
 Route::get('/', function () {
-    return view('welcome');
+    $homepage = Homepage::first(); // get the first homepage row
+    return view('welcome', compact('homepage'));
 })->name('home');
 
 // --------------------
 // User Routes
 // --------------------
-Route::prefix('user')->name('user.')->group(function () {
-    Route::get('/login', [UsersAuthController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [UsersAuthController::class, 'login']);
 
+
+// --------------------
+// User Routes
+// --------------------
+Route::prefix('user')->name('user.')->middleware('web')->group(function () {
+    Route::get('/login', [UsersAuthController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [UsersAuthController::class, 'apiLogin']); // session persists
     Route::get('/register', [UsersAuthController::class, 'showRegisterForm'])->name('register');
     Route::post('/register', [UsersAuthController::class, 'apiRegister']);
 
-   Route::middleware(['auth:user'])->group(function () {
-    Route::get('/dashboard', [UsersAuthController::class, 'dashboard'])->name('dashboard');
+    Route::middleware(['auth:user'])->group(function () {
+        Route::get('/dashboard', [UsersAuthController::class, 'dashboard'])->name('dashboard');
+        Route::post('/logout', [UsersAuthController::class, 'logout'])->name('logout');
+    });
 });
 
-    Route::post('/logout', [UsersAuthController::class, 'logout'])->name('logout');
 
-    // SPA fallback route — keep it LAST so it doesn't override login/register
-    Route::get('/{any}', function () {
-        return view('user.userregister');
-    })->where('any', '.*');
+
+// --------------------
+// API Routes for Vue login/register
+// --------------------
+/*
+Route::middleware('web')->prefix('api/user')->group(function () {
+    Route::post('/login', [UsersAuthController::class, 'apiLogin']); 
+    Route::post('/logout', [UsersAuthController::class, 'logout']); 
+    Route::post('/register', [UsersAuthController::class, 'apiRegister']);
 });
+*/
+
+
+
+
+
 
 // --------------------
 // Admin Routes
@@ -72,6 +95,27 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::get('print_reports', [ReportsController::class, 'print'])->name('print_reports');
     Route::get('/print_clients/print', [ClientController::class, 'print'])->name('print_clients.print');
+
+    Route::get('/homepage/edit', [HomepageController::class, 'edit'])->name('homepage.edit');
+    Route::put('/homepage/update', [HomepageController::class, 'update'])->name('homepage.update');
+
+    Route::get('/messages', [MessageController::class, 'index'])->name('messages');
+
+    // General and personal messages
+    Route::post('/messages/general', [MessageController::class, 'sendGeneral'])->name('messages.sendGeneral');
+    Route::post('/messages/personal', [MessageController::class, 'sendPersonal'])->name('messages.sendPersonal');
+
+    // Optional: redirect GET requests to avoid the 405 error
+    Route::get('/messages/general', function() {
+        return redirect()->route('admin.messages');
+    });
+    Route::get('/messages/personal', function() {
+        return redirect()->route('admin.messages');
+    });
+
+    Route::get('/behavior', [BehaviorController::class, 'index'])->name('admin.behavior');
+    Route::get('/behavior/data', [BehaviorController::class, 'data'])->name('admin.behavior.data');
+    Route::post('/behavior/data', [BehaviorController::class, 'store'])->name('admin.behavior.store');
 });
 
 // --------------------
@@ -82,8 +126,7 @@ Route::prefix('api/admin')->group(function () {
     Route::post('/register', [AdminAuthController::class, 'apiRegister']);
 });
 
-Route::prefix('api/user')->group(function () {
-    Route::post('/login', [UsersAuthController::class, 'login']); // changed from apiLogin
-    Route::post('/logout', [UsersAuthController::class, 'logout']); // changed from apiLogout
-    Route::post('/register', [UsersAuthController::class, 'apiRegister']);
-});
+
+//Route::get('/{any}', function () {
+        //return view('user.userregister');
+    //})->where('any', '.*');

@@ -1,61 +1,55 @@
 <template>
-  <div class="bg-primary vh-100 d-flex align-items-center justify-content-center">
-    <div class="container">
-      <div class="row justify-content-center">
-        <div class="col-lg-5">
-          <div class="card shadow-lg border-0 rounded-lg mt-5">
-            <div class="card-header">
-              <h3 class="text-center font-weight-light my-4">Admin Login</h3>
-            </div>
-            <div class="card-body">
-              <form @submit.prevent="login">
-                <div class="form-floating mb-3">
-                  <input
-                    v-model="email"
-                    type="email"
-                    class="form-control"
-                    id="email"
-                    placeholder="name@example.com"
-                    required
-                  />
-                  <label for="email">Email address</label>
-                </div>
-                <div class="form-floating mb-3">
-                  <input
-                    v-model="password"
-                    type="password"
-                    class="form-control"
-                    id="password"
-                    placeholder="Password"
-                    required
-                  />
-                  <label for="password">Password</label>
-                </div>
-                <div class="form-check mb-3">
-                  <input class="form-check-input" id="remember" type="checkbox" />
-                  <label class="form-check-label" for="remember">Remember Password</label>
-                </div>
-                <div class="d-flex align-items-center justify-content-between mt-4 mb-0">
-                  <a class="small" href="#">Forgot Password?</a>
-                  <button type="submit" class="btn btn-primary">Login</button>
-                </div>
-                <div v-if="error" class="alert alert-danger mt-3" role="alert">
-                  {{ error }}
-                </div>
-              </form>
-            </div>
-            <div class="card-footer text-center py-3">
-              <div class="small"><a href="/admin/register">Need an account? Sign up!</a></div>
-            </div>
+  <div>
+    <!-- ✅ Header Component -->
+    <Header
+      :homepage="{
+        header_bg: '#741aac',
+        logo: '/images/MAGALLANES_LOGO.png',
+        header_title: 'Magallanes Water Billing System',
+        nav_home: 'Home',
+        nav_bills: 'Bills',
+        nav_contact: 'Contact Us',
+        sign_in_text: 'Sign In'
+      }"
+      :showSignIn="false"
+    />
+
+    <!-- ✅ Admin Login Form -->
+    <div class="login-wrapper vh-100 d-flex align-items-center justify-content-center">
+      <div class="card shadow-sm p-4 w-100" style="max-width: 400px;">
+        <h2 class="text-center mb-4">Admin Login</h2>
+
+        <form @submit.prevent="login">
+          <!-- Email -->
+          <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input v-model="email" type="email" class="form-control" id="email" />
           </div>
-        </div>
+
+          <!-- Password -->
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input v-model="password" type="password" class="form-control" id="password" />
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100">Login</button>
+
+          <!-- Error Message -->
+          <div v-if="error" class="alert alert-danger mt-3" role="alert">
+            {{ error }}
+          </div>
+        </form>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import Header from './Header.vue';
+
 export default {
+  name: "AdminLogin",
+  components: { Header },
   data() {
     return {
       email: '',
@@ -66,27 +60,34 @@ export default {
   methods: {
     async login() {
       this.error = '';
+
       try {
         const response = await fetch('/api/admin/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            'X-CSRF-TOKEN':
+              document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
           },
           body: JSON.stringify({
             email: this.email,
             password: this.password
-          })
+          }),
+          credentials: 'include'
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          this.error = errorData.message || 'Invalid credentials.';
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          this.error = data.message || 'Invalid credentials, please contact the system admin.';
           return;
         }
 
-        window.location.href = '/admin/dashboard';
+        // Redirect to admin dashboard
+        setTimeout(() => {
+          window.location.assign(data.redirect || '/admin/dashboard');
+        }, 50);
       } catch (err) {
         this.error = 'Login failed: ' + err.message;
       }
@@ -96,11 +97,35 @@ export default {
 </script>
 
 <style scoped>
-.bg-primary {
-  padding-top: 40px;
-  padding-bottom: 40px;
-  min-height: 100vh;
-  background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('/images/Flag_of_Magallanes,_Agusan_del_Norte.webp') no-repeat center center;
+.login-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+  background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+    url('/images/Flag_of_Magallanes,_Agusan_del_Norte.webp') no-repeat center center;
   background-size: cover;
+}
+
+.card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+button {
+  padding: 0.75rem;
+  border: none;
+  background: #007bff;
+  color: white;
+  font-size: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+button:hover {
+  background: #0056b3;
 }
 </style>

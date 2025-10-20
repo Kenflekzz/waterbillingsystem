@@ -32,60 +32,59 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // ✅ Recalculate consumed based on readings
-        function calculateConsumed() {
+    // ✅ Recalculate consumption and bill (tiered)
+    function calculateConsumed() {
         const prev = parseFloat(previousInput.value) || 0;
         const pres = parseFloat(presentInput.value) || 0;
-        let diff = pres - prev;
-        diff = diff > 0 ? diff : 0;
+        let cubicConsumed = pres - prev;
+        cubicConsumed = cubicConsumed > 0 ? cubicConsumed : 0;
 
         let amount = 0;
 
-        if (diff <= 10) {
-            amount = 150;
+        if (cubicConsumed <= 10) {
+            amount = 150; // flat rate
         } else {
-            amount = 150; // first 0–10 cu.m.
-            diff -= 10;
+            amount = 150; // first 10 cu.m.
+            let diff = cubicConsumed - 10;
 
-            let tier = Math.min(diff, 10); // next 10 cu.m. at ₱16
+            let tier = Math.min(diff, 10); // next 11–20 at ₱16
             amount += tier * 16;
             diff -= tier;
 
-            tier = Math.min(diff, 10); // next 10 cu.m. at ₱19
+            tier = Math.min(diff, 10); // next 21–30 at ₱19
             amount += tier * 19;
             diff -= tier;
 
-            tier = Math.min(diff, 10); // next 10 cu.m. at ₱23
+            tier = Math.min(diff, 10); // next 31–40 at ₱23
             amount += tier * 23;
             diff -= tier;
 
-            tier = Math.min(diff, 10); // next 10 cu.m. at ₱26 (corrected)
+            tier = Math.min(diff, 10); // next 41–50 at ₱26
             amount += tier * 26;
             diff -= tier;
 
-            // Remaining cu.m. above 50, at ₱30 each (adjust if your rule differs)
             if (diff > 0) {
-                amount += diff * 30;
+                amount += diff * 30; // 51+ at ₱30
             }
         }
 
-        consumedInput.value = amount.toFixed(2);
+        // ✅ Store computed values
+        consumedInput.value = cubicConsumed; // cu.m.
+        currentBillInput.value = amount.toFixed(2); // peso
         recalculateTotal();
     }
 
-
-
-
     // ✅ Compute total amount
     function recalculateTotal() {
-        const consumed = parseFloat(consumedInput.value) || 0;
         const currentBill = parseFloat(currentBillInput.value) || 0;
         const arrears = parseFloat(arrearsField.value) || 0;
         const penalty = parseFloat(penaltyField.value) || 0;
+
+        // Treat optional fields as 0 if blank
         const maintenance = parseFloat(maintenanceCostInput.value) || 0;
         const installation = parseFloat(installationFeeInput.value) || 0;
 
-        const total = consumed + currentBill + arrears + penalty + maintenance + installation;
+        const total = currentBill + arrears + penalty + maintenance + installation;
         totalAmountInput.value = total.toFixed(2);
     }
 
@@ -122,7 +121,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // ✅ Event listeners
     previousInput?.addEventListener('input', calculateConsumed);
     presentInput?.addEventListener('input', calculateConsumed);
-    currentBillInput?.addEventListener('input', recalculateTotal);
     maintenanceCostInput?.addEventListener('input', recalculateTotal);
     installationFeeInput?.addEventListener('input', recalculateTotal);
     billingDateInput?.addEventListener('change', () => {
@@ -136,8 +134,8 @@ document.addEventListener("DOMContentLoaded", function () {
             penaltyField.value = '0.00';
             totalAmountInput.value = '0.00';
             currentBillInput.value = '';
-            maintenanceCostInput.value = '';
-            installationFeeInput.value = '';
+            maintenanceCostInput.value = ''; // left blank but treated as 0
+            installationFeeInput.value = ''; // left blank but treated as 0
             consumedInput.value = '';
 
             fetch("billings/next-id")

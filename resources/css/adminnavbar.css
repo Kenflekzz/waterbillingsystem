@@ -1,0 +1,23 @@
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;          /* allow logo + text to wrap */
+  white-space: normal;      /* allow text to break line */
+}
+
+.navbar-brand img {
+  height: 35px;
+  width: auto;
+  margin-right: 10px;
+}
+
+.navbar-brand span {
+  font-size: 1rem;          /* scale down on small screens */
+}
+
+/* optional: shrink text more on very small screens */
+@media (max-width: 576px) {
+  .navbar-brand span {
+    font-size: 0.85rem;
+  }
+}
