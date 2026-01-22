@@ -1,9 +1,16 @@
 window.addEventListener('DOMContentLoaded', event => {
-    // Simple-DataTables
-    // https://github.com/fiduswriter/Simple-DataTables/wiki
-
     const datatablesSimple = document.getElementById('datatablesSimple');
+
     if (datatablesSimple) {
-        new simpleDatatables.DataTable(datatablesSimple);
+        const dt = new simpleDatatables.DataTable(datatablesSimple);
+
+        // Hide loader when table is ready (FIRST LOAD)
+        dt.on("datatable.init", () => hideLoader());
+
+        // Hide loader on paginating
+        dt.on("datatable.page", () => hideLoader());
+
+        // Hide loader on sorting
+        dt.on("datatable.sort", () => hideLoader());
     }
 });

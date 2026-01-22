@@ -2,8 +2,13 @@
   <div class="register-container">
     <div class="form-wrapper">
       <h2 class="text-center mb-4">User Registration</h2>
+
+      <!-- 🔵 Global Loader -->
+      <div id="global-loader" v-show="loading">
+        <div class="droplet"></div>
+      </div>
+
       <form @submit.prevent="registerUser">
-        
         <input v-model="form.first_name" 
                placeholder="First Name" 
                :class="{ 'is-invalid': errors.first_name }" />
@@ -29,14 +34,36 @@
                :class="{ 'is-invalid': errors.email }" />
         <p v-if="errors.email" class="error-msg">{{ errors.email[0] }}</p>
 
-        <input v-model="form.password" type="password" 
-               placeholder="Password" 
-               :class="{ 'is-invalid': errors.password }" />
-        <p v-if="errors.password" class="error-msg">{{ errors.password[0] }}</p>
+        <!-- 🔹 Password with toggle -->
+          <div class="password-wrapper">
+            <input 
+              :type="showPassword.password ? 'text' : 'password'" 
+              v-model="form.password" 
+              placeholder="Password" 
+              :class="{ 'is-invalid': errors.password }" 
+            />
+            <i 
+              v-if="form.password.length > 0"
+              class="toggle-password bi"
+              :class="showPassword.password ? 'bi-eye-slash' : 'bi-eye'"
+              @click="showPassword.password = !showPassword.password"
+            ></i>
+          </div>
 
-        <input v-model="form.password_confirmation" 
-               type="password" 
-               placeholder="Confirm Password" />
+          <!-- 🔹 Confirm Password with toggle -->
+          <div class="password-wrapper">
+            <input 
+              :type="showPassword.confirm ? 'text' : 'password'" 
+              v-model="form.password_confirmation" 
+              placeholder="Confirm Password" 
+            />
+            <i 
+              v-if="form.password_confirmation.length > 0"
+              class="toggle-password bi"
+              :class="showPassword.confirm ? 'bi-eye-slash' : 'bi-eye'"
+              @click="showPassword.confirm = !showPassword.confirm"
+            ></i>
+          </div>
 
         <button type="submit">Register</button>
       </form>
@@ -44,7 +71,6 @@
       <p v-if="errors.general" class="error-msg">{{ errors.general[0] }}</p>
       <p v-if="success" class="success-msg">Registration successful!</p>
 
-      <!-- 🔹 Link to Login page -->
       <p class="mt-3 text-center">
         Already have an account?
         <router-link to="/user/login">Login here</router-link>
@@ -56,22 +82,31 @@
 <script>
 export default {
   data() {
-    return {
-      form: {
-        first_name: '',
-        last_name: '',
-        meter_number: '',
-        phone_number: '',
-        email: '',
-        password: '',
-        password_confirmation: ''
-      },
-      success: false,
-      errors: {} // hold field-specific validation errors
-    }
-  },
+  return {
+    form: {
+      first_name: '',
+      last_name: '',
+      meter_number: '',
+      phone_number: '',
+      email: '',
+      password: '',
+      password_confirmation: ''
+    },
+    showPassword: {
+      password: false,
+      confirm: false
+    },
+    loading: false,
+    success: false,
+    errors: {}
+  }
+},
   methods: {
+    togglePassword() {
+      this.showPassword[field] = !this.showPassword[field];
+    },
     async registerUser() {
+      this.loading = true;  // 🔹 show loader
       this.success = false;
       this.errors = {};
 
@@ -99,14 +134,13 @@ export default {
 
         if (!response.ok) {
           if (data.errors) {
-            this.errors = data.errors; // Laravel returns { field: [messages] }
+            this.errors = data.errors;
           } else if (data.message) {
             this.errors.general = [data.message];
           }
           return;
         }
 
-        // ✅ Registration success
         this.success = true;
         this.errors = {};
         this.form = {
@@ -119,10 +153,13 @@ export default {
           password_confirmation: ''
         };
 
+        // 🔹 Redirect after registration
         window.location.href = '/user/dashboard';
 
       } catch (err) {
         this.errors.general = [err.message];
+      } finally {
+        this.loading = false; // 🔹 hide loader
       }
     }
   }
@@ -135,8 +172,8 @@ export default {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
-    url('/images/Flag_of_Magallanes,_Agusan_del_Norte.webp') no-repeat center center;
+  background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)),
+              url('/images/Flag_of_Magallanes,_Agusan_del_Norte.webp') no-repeat center center;
   background-size: cover;
 }
 
@@ -144,9 +181,33 @@ export default {
   background: white;
   padding: 2rem;
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
   width: 100%;
   max-width: 400px;
+  position: relative;
+}
+
+/* 🔹 Loader styles */
+#global-loader {
+  display: flex;
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255,255,255,0.8);
+  z-index: 999;
+}
+.droplet {
+  width: 40px;
+  height: 40px;
+  background: #007bff;
+  border-radius: 50% 50% 60% 60%;
+  animation: drop 0.8s infinite ease-in-out;
+}
+@keyframes drop {
+  0% { transform: translateY(-15px) scale(1); opacity:0.9; }
+  50% { transform: translateY(0px) scale(0.85); opacity:1; }
+  100% { transform: translateY(15px) scale(1); opacity:0.9; }
 }
 
 form {
@@ -192,7 +253,27 @@ button:hover {
   margin-top: 0.5rem;
 }
 
-/* 🔹 Styling for login link */
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper input {
+  width: 100%;
+  padding-right: 2.5rem; /* room for eye icon */
+}
+
+.toggle-password {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #555;
+  font-size: 1.2rem;
+}
+
+
+
 p a {
   color: #007bff;
   text-decoration: none;

@@ -17,18 +17,13 @@
         <ul class="nav">
           <li class="nav-item">
             <a class="nav-link text-white" href="/">
-              {{ homepage.nav_home || 'Home' }}
+              <i class="bi bi-house-door"></i> {{ homepage.nav_home || 'Home' }}
             </a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link text-white" href="#">
-              {{ homepage.nav_bills || 'Bills' }}
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link text-white" href="#">
-              {{ homepage.nav_contact || 'Contact Us' }}
-            </a>
+         <li v-if="!hideContactUs" class="nav-item">
+           <a class="nav-link text-white" href="#contact" @click.prevent="scrollToContact">
+            <i class="bi bi-envelope me-1"></i>{{ homepage.nav_contact ?? 'Contact Us' }}
+          </a>
           </li>
 
           <!-- Hide or show Sign In button depending on prop -->
@@ -57,12 +52,19 @@ export default {
     showSignIn: {
       type: Boolean,
       default: true
+    },
+    hideContactUs:{
+      type: Boolean,
+      default:true
     }
   },
   methods: {
     redirectToLogin() {
       window.location.href = "/user/login";
-    }
+    },
+    scrollToContact() {
+    document.querySelector('#contact').scrollIntoView({ behavior: 'smooth' });
+  }
   }
 };
 </script>

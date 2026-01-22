@@ -9,7 +9,7 @@
 
         <div class="collapse navbar-collapse" id="navbarContent">
             <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link" href="{{ route('user.dashboard') }}">Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ route('user.consumption') }}">Dashboard</a></li>
                 <li class="nav-item"><a class="nav-link" href="#">Billing</a></li>
                 <li class="nav-item"><a class="nav-link" href="#">Consumption</a></li>
                <li class="nav-item">

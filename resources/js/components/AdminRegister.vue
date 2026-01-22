@@ -82,7 +82,7 @@ export default {
     async register() {
       this.error = '';
       try {
-        const response = await fetch('/api/admin/register', {
+        const response = await fetch('/admin/register', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

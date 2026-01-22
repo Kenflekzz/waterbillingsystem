@@ -77,13 +77,18 @@
 
 
                                 <!-- Delete (Trash Icon) -->
-                                <form action="{{ route('admin.billings.destroy', $billing->id) }}" method="POST" class="d-inline delete-billing-form">
+                               <form action="{{ route('admin.billings.destroy', $billing->id) }}" 
+                                    method="POST" 
+                                    class="d-inline delete-billing-form"
+                                    data-no-loader = "1">
                                     @csrf
                                     @method('DELETE')
+
                                     <button type="submit" class="btn btn-sm btn-danger" title="Delete">
                                         <i class="fas fa-trash"></i>
                                     </button>
-                                </form>
+                            </form>
+
                             </td>
                         </tr>
                         <!-- View Billing Modal -->

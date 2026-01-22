@@ -10,10 +10,53 @@
     <li class="breadcrumb-item active">Total Paid Consumers</li>
 </ol>
 
-<div class="card mb-4">
-    <div class="card-body">
-        Below is the table showing all paid payment records.
-    </div>
+<div class="mb-3">
+   <form method="GET" action="{{ route('admin.filter_paid_consumers') }}" class="form-inline">
+
+        <label for="name" class="form-label me-2">Consumer Name:</label>
+        <input
+            type="text"
+            name="name"
+            id="name"
+            class="form-control d-inline-block w-auto me-3"
+            placeholder="Search name"
+            value="{{ request('name') }}">
+
+        <label for="billing_month" class="form-label me-2">Billing Month:</label>
+        <input
+            type="month"
+            name="billing_month"
+            id="billing_month"
+            class="form-control d-inline-block w-auto me-3"
+            value="{{ request('billing_month') }}">
+
+        <label for="status" class="form-label me-2">Status:</label>
+        <select name="status" id="status" class="form-select d-inline-block w-auto me-2">
+            <option value="">-- All --</option>
+            <option value="paid" {{ request('status') == 'paid' ? 'selected' : '' }}>Paid</option>
+            <option value="unpaid" {{ request('status') == 'unpaid' ? 'selected' : '' }}>Unpaid</option>
+            <option value="partial" {{ request('status') == 'partial' ? 'selected' : '' }}>Partial</option>
+            <option value="gcash" {{ request('status') == 'gcash' ? 'selected' : '' }}>Paid via GCash</option>
+        </select>
+
+        <button class="btn btn-primary me-2">
+            <i class="fas fa-filter"></i> Filter
+        </button>
+
+        <a href="{{ route('admin.total_paid') }}" class="btn btn-secondary">
+            Reset
+        </a>
+
+    </form>
+</div>
+
+<div class="mb-3 text-end">
+    <a
+        href="{{ route('admin.print_paid_consumers', request()->query()) }}"
+        target="_blank"
+        class="btn btn-secondary">
+        <i class="fas fa-print"></i> Print Filtered Result
+    </a>
 </div>
 
 <div class="card mb-4">
@@ -51,7 +94,17 @@
                     <td>{{ $payment->payment_type_label }}</td>
                     <td>₱{{ number_format($payment->penalty, 2) }}</td>
                     <td><strong>₱{{ number_format($payment->total_amount, 2) }}</strong></td>
-                    <td>{{ ucfirst($payment->status) }}</td>
+                    <td>
+                        @if($payment->payment_type === 'gcash')
+                            <span class="badge bg-info">Paid via GCash</span>
+                        @elseif($payment->status === 'paid')
+                            <span class="badge bg-success">Paid</span>
+                        @elseif($payment->status === 'partial')
+                            <span class="badge bg-warning text-dark">Partial</span>
+                        @else
+                            <span class="badge bg-secondary">{{ ucfirst($payment->status) }}</span>
+                        @endif
+                    </td>
                 </tr>
                 @endforeach
             </tbody>

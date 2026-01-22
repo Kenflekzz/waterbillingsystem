@@ -45,157 +45,150 @@
         </div>
         <div class="card-body">
             <table id="datatablesSimple" class="table table-bordered">
-                <thead>
-                    <tr>
-                        <th>Group</th>
-                        <th>Meter No.</th>
-                        <th>Client Full Name</th>
-                        <th>Barangay</th>
-                        <th>Purok</th>
-                        <th>Contact Number</th>
-                        <th>Date Cut</th>
-                        <th>Install Date</th>
-                        <th>Meter Series</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($clients as $client)
-                        <tr>
-                            <td>{{ $client->group }}</td>
-                            <td>{{ $client->meter_no }}</td>
-                            <td>{{ $client->full_name }}</td>
-                            <td>{{ $client->barangay }}</td>
-                            <td>{{ $client->purok }}</td>
-                            <td>{{$client->contact_number}}</td>
-                            <td>{{ $client->date_cut }}</td>
-                            <td>{{ $client->installation_date }}</td>
-                            <td>{{ $client->meter_series }}</td>
-                            <td class="text-center">
-                                @if($client->status == 'CURC')
-                                    <span class="text-success fw-bold">CURC</span>
-                                @elseif($client->status == 'CUT')
-                                    <span class="text-danger fw-bold">CUT</span>
-                                @else
-                                    <span class="text-muted">{{ $client->status }}</span>
-                                @endif
-                            </td>
-                            <td class="text-center">
-                                <!-- View -->
-                                <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#viewClientModal{{ $client->id }}" title="View">
-                                    <i class="fas fa-eye"></i>
-                                </button>
+                {{-- ==========  TABLE HEADERS  ========== --}}
+<thead>
+    <tr>
+        <th>Group</th>
+        <th>Meter No.</th>
+        <th>Meter Status</th>        {{-- NEW --}}
+        <th>Replacement Date</th>    {{-- NEW --}}
+        <th>Client Full Name</th>
+        <th>Barangay</th>
+        <th>Purok</th>
+        <th>Contact Number</th>
+        <th>Date Cut</th>
+        <th>Install Date</th>
+        <th>Meter Series</th>
+        <th>Status</th>
+        <th>Action</th>
+    </tr>
+</thead>
 
-                                <!-- Edit -->
-                                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editClientModal{{ $client->id }}" title="Edit">
-                                    <i class="fas fa-pencil-alt"></i>
-                                </button>
+{{-- ==========  TABLE BODY  ========== --}}
+<tbody>
+    @foreach($clients as $client)
+        <tr>
+            <td>{{ $client->group }}</td>
+            <td>{{ $client->meter_no }}</td>
+            <td>{{ ucfirst($client->meter_status ?? 'old') }}</td>     {{-- NEW --}}
+            <td>{{ $client->replacement_date ? \Carbon\Carbon::parse($client->replacement_date)->format('M d, Y') : '—' }}</td> {{-- NEW --}}
+            <td>{{ $client->full_name }}</td>
+            <td>{{ $client->barangay }}</td>
+            <td>{{ $client->purok }}</td>
+            <td>{{ $client->contact_number }}</td>
+            <td>{{ $client->date_cut }}</td>
+            <td>{{ $client->installation_date }}</td>
+            <td>{{ $client->meter_series }}</td>
+            <td class="text-center">
+                @if($client->status == 'CURC')
+                    <span class="text-success fw-bold">CURC</span>
+                @elseif($client->status == 'CUT')
+                    <span class="text-danger fw-bold">CUT</span>
+                @else
+                    <span class="text-muted">{{ $client->status }}</span>
+                @endif
+            </td>
+            <td class="text-center">
+                <!-- View -->
+                <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#viewClientModal{{ $client->id }}" title="View">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <!-- Edit -->
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editClientModal{{ $client->id }}" title="Edit">
+                    <i class="fas fa-pencil-alt"></i>
+                </button>
+                <!-- Delete -->
+                <form action="{{ route('admin.clients.destroy', $client->id) }}" method="POST" class="d-inline delete-client-form">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </form>
+            </td>
+        </tr>
 
-                                <!-- Delete -->
-                                <form action="{{ route('admin.clients.destroy', $client->id) }}" method="POST" class="d-inline delete-client-form">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
+        {{-- ==========  EDIT MODAL  ========== --}}
+        <div class="modal fade" id="editClientModal{{ $client->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <form action="{{ route('admin.clients.update', $client->id) }}" method="POST">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Edit Client</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            {{-- existing fields --}}
+                            <div class="mb-3">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" class="form-control" name="full_name" value="{{ $client->full_name }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Meter No.</label>
+                                <input type="text" class="form-control" name="meter_no" value="{{ $client->meter_no }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Group</label>
+                                <input type="text" class="form-control" name="group" value="{{ $client->group }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Barangay</label>
+                                <input type="text" class="form-control" name="barangay" value="{{ $client->barangay }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Purok</label>
+                                <input type="text" class="form-control" name="purok" value="{{ $client->purok }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Contact Number</label>
+                                <input type="text" class="form-control" name="contact_number" value="{{ $client->contact_number }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Date Cut</label>
+                                <input type="date" class="form-control" name="date_cut" value="{{ $client->date_cut }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Installation Date</label>
+                                <input type="date" class="form-control" name="installation_date" value="{{ $client->installation_date }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Meter Series</label>
+                                <input type="text" class="form-control" name="meter_series" value="{{ $client->meter_series }}" required>
+                            </div>
 
-                        <!-- View Client Modal -->
-                        <div class="modal fade" id="viewClientModal{{ $client->id }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-lg">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">Client Details</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <p><strong>Full Name:</strong> {{ $client->full_name }}</p>
-                                        <p><strong>Meter No:</strong> {{ $client->meter_no }}</p>
-                                        <p><strong>Group:</strong> {{ $client->group }}</p>
-                                        <p><strong>Barangay:</strong> {{ $client->barangay }}</p>
-                                        <p><strong>Purok:</strong> {{ $client->purok }}</p>
-                                        <p><strong>Contact Number:</strong> {{ $client->contact_number}}</p>
-                                        <p><strong>Date Cut:</strong> {{ $client->date_cut }}</p>
-                                        <p><strong>Installation Date:</strong> {{ $client->installation_date }}</p>
-                                        <p><strong>Meter Series:</strong> {{ $client->meter_series }}</p>
-                                        <p><strong>Status:</strong> {{ $client->status }}</p>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                    </div>
-                                </div>
+                            {{-- NEW FIELDS --}}
+                            <div class="mb-3">
+                                <label class="form-label">Meter Status</label>
+                                <select class="form-select" name="meter_status" required>
+                                    <option value="old" {{ ($client->meter_status ?? 'old') === 'old' ? 'selected' : '' }}>Old</option>
+                                    <option value="replacement" {{ ($client->meter_status ?? 'old') === 'replacement' ? 'selected' : '' }}>Replacement</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Replacement Date</label>
+                                <input type="date" class="form-control" name="replacement_date" value="{{ $client->replacement_date }}">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" name="status" required>
+                                    <option value="CURC" {{ $client->status == 'CURC' ? 'selected' : '' }}>CURC</option>
+                                    <option value="CUT" {{ $client->status == 'CUT' ? 'selected' : '' }}>CUT</option>
+                                </select>
                             </div>
                         </div>
-
-                        <!-- Edit Client Modal -->
-                        <div class="modal fade" id="editClientModal{{ $client->id }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog">
-                                <form action="{{ route('admin.clients.update', $client->id) }}" method="POST">
-                                    @csrf
-                                    @method('PUT')
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Edit Client</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <div class="mb-3">
-                                                <label class="form-label">Full Name</label>
-                                                <input type="text" class="form-control" name="full_name" value="{{ $client->full_name }}" required>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Meter No.</label>
-                                                <input type="text" class="form-control" name="meter_no" value="{{ $client->meter_no }}" required>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Group</label>
-                                                <input type="text" class="form-control" name="group" value="{{ $client->group }}" required>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Barangay</label>
-                                                <input type="text" class="form-control" name="barangay" value="{{ $client->barangay }}" required>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Purok</label>
-                                                <input type="text" class="form-control" name="purok" value="{{ $client->purok }}" required>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Contact Number</label>
-                                                <input type="contact_number" class="form-control" name="contact_number" value="{{ $client->contact_number }}" required>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Date Cut</label>
-                                                <input type="date" class="form-control" name="date_cut" value="{{ $client->date_cut }}">
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Installation Date</label>
-                                                <input type="date" class="form-control" name="installation_date" value="{{ $client->installation_date }}" required>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Meter Series</label>
-                                                <input type="text" class="form-control" name="meter_series" value="{{ $client->meter_series }}" required>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Status</label>
-                                                <select class="form-select" name="status" required>
-                                                    <option value="CURC" {{ $client->status == 'CURC' ? 'selected' : '' }}>CURC</option>
-                                                    <option value="CUT" {{ $client->status == 'CUT' ? 'selected' : '' }}>CUT</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="submit" class="btn btn-success">Update</button>
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-success">Update</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         </div>
-                    @endforeach
-                </tbody>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endforeach
+</tbody>
             </table>
             <div class="mt-3">
                 {{ $clients->links() }}
@@ -259,6 +252,7 @@
                             <label class="form-label">Meter Series</label>
                             <input type="text" class="form-control" name="meter_series" required>
                         </div>
+                        
                     </div>
                     <div class="modal-footer">
                         <button type="submit" class="btn btn-success">Add Client</button>

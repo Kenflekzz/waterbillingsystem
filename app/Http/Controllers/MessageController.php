@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Services\SmsService;
 use App\Models\Clients;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class MessageController extends Controller
 {
@@ -15,20 +17,19 @@ class MessageController extends Controller
         $this->sms = $sms;
     }
 
-    private function formatPhoneNumber($number)
-    {
-        $number = preg_replace('/\D+/', '', $number);
+    private function formatPhoneNumber($number): ?string
+{
+    $n = preg_replace('/\D+/', '', $number);
 
-        if (strpos($number, '0') === 0) {
-            $number = '+63' . substr($number, 1);
-        } elseif (strpos($number, '9') === 0) {
-            $number = '+63' . $number;
-        } elseif (strpos($number, '63') === 0 && strpos($number, '+63') !== 0) {
-            $number = '+' . $number;
-        }
-
-        return $number;
+    if (strlen($n) === 10 && Str::startsWith($n, '9')) {
+        $n = '63' . $n;
     }
+    if (strlen($n) === 11 && Str::startsWith($n, '09')) {
+        $n = '63' . substr($n, 1);
+    }
+
+    return strlen($n) === 12 ? $n : null;   // 639xxxxxxxxx  (no "+")
+}
 
     // 📩 Send to all clients
     public function sendGeneral(Request $request)
@@ -44,12 +45,17 @@ class MessageController extends Controller
         foreach ($clients as $client) {
             if (!empty($client->contact_number)) {
                 $to = $this->formatPhoneNumber($client->contact_number);
+                if ($to === null) {
+                    Log::warning("Bad number skipped", ['client' => $client->id, 'raw' => $client->contact_number]);
+                    continue;
+                }
                 $message = $request->title . " - " . $request->body;
 
                 $response = $this->sms->sendSMS($to, $message);
+                Log::info("Sending SMS to {$to} with message: {$message}");
 
-                if (!$response['success']) {
-                    $failed[] = $client->name;
+                if ($response['status'] !== 'sent') {
+                    $failed[] = $client->full_name;
                 }
             }
         }
@@ -74,12 +80,15 @@ class MessageController extends Controller
         $to = $this->formatPhoneNumber($client->contact_number);
         $message = $request->title . " - " . $request->body;
 
-        $response = $this->sms->sendSMS($to, $message);
+       $response = $this->sms->sendSMS($to, $message);
 
-        if ($response['success']) {
-            return back()->with('success', 'Message sent to ' . $client->name);
-        } else {
-            return back()->with('error', 'Failed to send message: ' . ($response['error'] ?? 'Unknown error'));
+        switch ($response['status']) {
+            case 'sent':
+                return back()->with('success', 'Message delivered to ' . $client->full_name);
+            case 'pending':
+                return back()->with('info', 'Message queued (pending) – ID: ' . $response['id']);
+            default:
+                return back()->with('error', 'Failed to send message: ' . ($response['error'] ?? 'Unknown'));
         }
     }
 

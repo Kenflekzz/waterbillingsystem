@@ -1,7 +1,10 @@
 @extends('layouts.admin')
 
 @section('title', 'Payments')
-<link rel="icon" href="{{ asset('images/MAGALLANES_LOGO.png') }}" type="image/x-icon">
+<link rel="icon" href="{{ asset('images/MAGALLANES_LOGO.png') }}" type="image/x-icon">\
+
+<meta name="csrf-token" content="{{ csrf_token() }}">
+
 
 @section('content')
  {{-- Success Modal --}}
@@ -78,6 +81,7 @@
                     <th>Arrears</th>
                     <th>Partial Payment Amount</th>
                     <th>Payment Type</th>
+                    <th>Reconnection Fee</th>
                     <th>Penalty</th>
                     <th>Total Amount</th>
                     <th>Status</th>
@@ -90,12 +94,26 @@
                     <td>{{ $payment->client->full_name ?? 'N/A' }}</td>
                     <td>{{ $payment->client->barangay ?? 'N/A' }}</td>
                     <td>{{ $payment->client->purok ?? 'N/A' }}</td>
-                    <td>{{ \Carbon\Carbon::parse($payment->billing_month)->format('M Y') }}</td>
+                    <td>
+                      @php
+                          try {
+                              echo \Carbon\Carbon::parse($payment->billing_month)->format('M Y');
+                          } catch (\Exception $e) {
+                              echo $payment->billing_month; // fallback
+                          }
+                      @endphp
+                  </td>
                     <td>₱{{ number_format($payment->current_bill, 2) }}</td>
                     <td>₱{{ number_format($payment->remaining_current_balance ?? 0, 2) }}</td>
                     <td>₱{{ number_format($payment->arrears, 2) }}</td>
                     <td>₱{{ number_format($payment->partial_payment_amount ?? 0, 2) }}</td>
-                    <td>{{$payment->payment_type_label}}</td>
+                    <td>{{ $payment->payment_type_label ?? ucfirst($payment->payment_type) ?? 'N/A' }}</td>
+                    <td>
+                        {{ $payment->reconnection_fee
+                            ? '₱' . number_format($payment->reconnection_fee, 2)
+                            : 'N/A'
+                        }}
+                    </td>
                     <td>₱{{ number_format($payment->penalty, 2) }}</td>
                     <td><strong>₱{{ number_format($payment->total_amount, 2) }}</strong></td>
                     <td>{{ ucfirst($payment->status) }}</td>
@@ -104,7 +122,7 @@
                                 <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ $payment->id }}">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <form action="{{ route('admin.payments.destroy', $payment->id) }}" method="POST" class="d-inline m-0 p-0 delete-payment-form">
+                                <form action="{{ route('admin.payments.destroy', $payment->id) }}" method="POST" class="d-inline m-0 p-0 delete-payment-form ajax-form d-inline m-0 p-0" data-no-loader = "1">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-danger">
@@ -118,56 +136,65 @@
                 @endforeach
             </tbody>
         </table>
-
         <!-- Edit Modals -->
-        @foreach($payments as $payment)
-        <div class="modal fade" id="editModal{{ $payment->id }}" tabindex="-1" aria-labelledby="editModalLabel{{ $payment->id }}" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <form method="POST" action="{{ route('admin.payments.update', $payment->id) }}">
-                        @csrf
-                        @method('PUT')
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="editModalLabel{{ $payment->id }}">Edit Payment Status</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                              <label for="paymentType{{ $payment->id }}" class="form-label">Payment Type</label>
-                              <select name="payment_type" id="paymentType{{ $payment->id }}" class="form-select"
-                                      onchange="togglePartialInput({{ $payment->id }})">
-                                  <option value="">-- Select --</option>
-                                  <option value="full">Full Payment</option>
-                                  <option value="arrears_only">Arrears Only</option>
-                                  <option value="partial_current">Partial Current Bill</option>
-                              </select>
-                          </div>
-
-                          <div class="mb-3 d-none" id="partialAmountDiv{{ $payment->id }}">
-                              <label for="partialAmount{{ $payment->id }}" class="form-label">Partial Payment Amount</label>
-                              <input type="number" step="0.01" name="partial_payment_amount" id="partialAmount{{ $payment->id }}" class="form-control">
-                          </div>
-
-                          <div class="mb-3">
-                              <label for="status{{ $payment->id }}" class="form-label">Status</label>
-                              <select name="status" id="status{{ $payment->id }}" class="form-select">
-                                  <option value="unpaid" {{ $payment->status == 'unpaid' ? 'selected' : '' }}>Unpaid</option>
-                                  <option value="paid" {{ $payment->status == 'paid' ? 'selected' : '' }}>Paid</option>
-                                  <option value="partial" {{ $payment->status == 'partial' ? 'selected' : '' }}>Partial</option>
-                                  <option value="disconnected" {{ $payment->status == 'disconnected' ? 'selected' : '' }}>Disconnected</option>
-                              </select>
-                          </div>
-
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            <button type="submit" class="btn btn-primary">Update Status</button>
-                        </div>
-                    </form>
+<!-- Edit Modals -->
+@foreach($payments as $payment)
+<div class="modal fade" id="editModal{{ $payment->id }}" tabindex="-1" aria-labelledby="editModalLabel{{ $payment->id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('admin.payments.update', $payment->id) }}" class="ajax-form">
+                @csrf
+                @method('PUT')
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel{{ $payment->id }}">Edit Payment Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-            </div>
+                <div class="modal-body">
+
+                    <!-- Payment Type -->
+                    <div class="mb-3">
+                        <label for="paymentType{{ $payment->id }}" class="form-label">Payment Type</label>
+                        <select name="payment_type" id="paymentType{{ $payment->id }}" class="form-select" onchange="togglePartialInput({{ $payment->id }})">
+                            <option value="">-- Select --</option>
+                            <option value="full" {{ $payment->payment_type == 'full' ? 'selected' : '' }}>Full Payment</option>
+                            <option value="arrears_only" {{ $payment->payment_type == 'arrears_only' ? 'selected' : '' }}>Arrears Only</option>
+                            <option value="partial_current" {{ $payment->payment_type == 'partial_current' ? 'selected' : '' }}>Partial Current Bill</option>
+                            <option value="none" {{ $payment->payment_type == 'none' ? 'selected' : '' }}>None</option>
+                        </select>
+                    </div>
+
+                    <!-- Partial Payment Amount -->
+                    <div class="mb-3 d-none" id="partialAmountDiv{{ $payment->id }}">
+                        <label for="partialAmount{{ $payment->id }}" class="form-label">Partial Payment Amount</label>
+                       <input type="number" step="0.01" name="partial_payment_amount" id="partialAmount{{ $payment->id }}" class="form-control"
+                        value="{{ old('partial_payment_amount', $payment->partial_payment_amount) }}"
+                        max="{{ $payment->current_bill }}">
+                    </div>
+
+                    <!-- Status -->
+                    <div class="mb-3">
+                        <label for="status{{ $payment->id }}" class="form-label">Status</label>
+                        <select name="status" id="status{{ $payment->id }}" class="form-select">
+                            <option value="unpaid" {{ $payment->status == 'unpaid' ? 'selected' : '' }}>Unpaid</option>
+                            <option value="paid" {{ $payment->status == 'paid' ? 'selected' : '' }}>Paid</option>
+                            <option value="partial" {{ $payment->status == 'partial' ? 'selected' : '' }}>Partial</option>
+                            <option value="disconnected" {{ $payment->status == 'disconnected' ? 'selected' : '' }}>Disconnected</option>
+                            <option value="reconnected" {{ $payment->status == 'reconnected' ? 'selected' : '' }}>Reconnected</option>
+                        </select>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Update Status</button>
+                </div>
+            </form>
         </div>
-        @endforeach
+    </div>
+</div>
+@endforeach
+
+
 
         <div class="mt-3">
             {{ $payments->links() }}
@@ -184,5 +211,7 @@
 <input type="hidden" id="successMessage" value="{{ session('success') }}">
 <input type="hidden" id="hasErrors" value="{{ $errors->any() ? '1' : '0' }}">
 <input type="hidden" id="errorMessages" value="{{ implode(' | ', $errors->all()) }}">
+<!-- Before your payments.js -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 @vite('resources/js/payments.js')
 @endsection

@@ -12,7 +12,7 @@
         width: 100%;
         height: 440px;
         min-height: 280px;
-        background: #fff;
+        background: white;
         border-radius: 12px;
         padding: 12px;
         position: relative;
@@ -26,7 +26,7 @@
         right: 8px;
         width: 16px;
         height: 16px;
-        background: #741aac;
+        background: black;
         border-radius: 4px;
         cursor: se-resize;
         z-index: 10;
@@ -67,7 +67,8 @@
         <div class="col-xl-3 col-md-6">
             <div class="card bg-success text-white mb-4">
                 <div class="card-body">Total No. of Paid</div>
-                <div class="card-footer d-flex align-items-center justify-content-between">
+                <div class="card-footer d-flex align-items-center justify-cont
+                ent-between">
                     <a class="small text-white stretched-link" href="{{ route('admin.total_paid') }}">View Details</a>
                     <div class="small text-white"><i class="fas fa-angle-right"></i></div>
                 </div>
@@ -90,7 +91,7 @@
         {{-- Chart Section (now wider) --}}
         <div class="col-md-9">
             <div class="card shadow-lg border-0 mb-4"
-                 style="border-radius: 20px; background: linear-gradient(135deg, #741aac, #9c6ade); color: white;">
+                 style="border-radius: 20px; background: blue; color: white;">
                 <div class="card-header d-flex justify-content-between align-items-center"
                      style="background: rgba(255, 255, 255, 0.1); border-top-left-radius: 20px; border-top-right-radius: 20px;">
                     <h5 class="mb-0 fw-bold">Behavioral Analysis</h5>
@@ -129,11 +130,12 @@
                         </select>
                         <select id="filter-consumer" class="form-select form-select-sm d-inline-block w-auto">
                             <option value="">All Consumers</option>
-                            @if (!empty($consumers))
-                                @foreach ($consumers as $c)
-                                    <option value="{{ $c->id }}">{{ $c->name }}</option>
-                                @endforeach
-                            @endif
+                            @foreach($consumers as $c)
+                                <option value="{{ $c->id }}"
+                                    {{ session('demo_consumer') == $c->id ? 'selected' : '' }}>
+                                    {{ $c->name }}
+                                </option>
+                            @endforeach
                         </select>
                     </div>
                 </div>
@@ -148,22 +150,74 @@
             </div>
         </div>
 
-        {{-- Feed Demo Data Section (smaller width) --}}
-        <div class="col-md-3">
-            <div class="card border-0 shadow-lg mb-4" style="border-radius: 20px;">
-                <div class="card-header fw-bold text-center"
-                     style="background-color: #741aac; color: white; border-top-left-radius: 20px; border-top-right-radius: 20px;">
-                    Feed Demo Data
-                </div>
-                <div class="card-body text-center">
-                    <button id="feed-random" class="btn btn-primary w-75"
-                            style="background-color: #741aac; border-color: #741aac;">
-                        <i class="fas fa-random me-2"></i>Feed Data
-                    </button>
-                </div>
-            </div>
+        {{-- Feed Demo Data Section --}}
+<div class="col-md-3">
+    <div class="card border-0 shadow-lg mb-4" style="border-radius: 20px;">
+        <div class="card-header fw-bold text-center"
+             style="background-color: blue; color: white; border-top-left-radius: 20px; border-top-right-radius: 20px;">
+            Feed Demo Data
         </div>
+        <div class="card-body text-center">
+            <!-- Date picker -->
+            <input type="date" id="feed-date" class="mb-2 w-75">
+
+            <!-- Time picker -->
+            <input type="time" id="feed-time" class="mb-2 w-75" value="12:00">
+
+            <!-- Consumer picker -->
+            <div class="d-flex justify-content-center mb-2">
+               <select id="feed-consumer" class="form-select w-75 mx-auto d-block">
+                    <option value="">Select Consumer</option>
+                    @foreach($consumers as $c)
+                        <option value="{{ $c->id }}"
+                            {{ session('demo_consumer') == $c->id ? 'selected' : '' }}>
+                            {{ $c->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Barangay picker -->
+            <div class="d-flex justify-content-center mb-2">
+                <select id="feed-barangay" class="form-select w-75 mx-auto d-block">
+                    <option value="">Select Barangay</option>
+                    @forelse($barangays as $b)
+                        <option value="{{ $b->name }}">{{ $b->name }}</option>
+                    @empty
+                    @endforelse
+                </select>
+            </div>
+
+            <button id="feed-random" class="btn btn-primary w-75"
+                    style="background-color: cyan; border-color: cyan;">
+                <i class="fas fa-random me-2"></i>Feed Data
+            </button>
+        </div>
+    </div>
+</div>
+
+
     </div>
 
     @vite('resources/js/behavioral.js')
+
+    {{-- keep demo_consumer in sync with the drop-down --}}
+<script>
+/* update session when consumer selector changes */
+document.getElementById('filter-consumer').addEventListener('change', function () {
+    if (!this.value) return;                       // “All Consumers” selected
+    fetch('/admin/set-demo-consumer/' + this.value, {method: 'POST', headers: {
+        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+    }});
+});
+
+/* same sync when feeding data */
+document.getElementById('feed-random').addEventListener('click', function () {
+    const cid = document.getElementById('feed-consumer').value;
+    if (!cid) return alert('Pick a consumer first');
+    fetch('/admin/set-demo-consumer/' + cid, {method: 'POST', headers: {
+        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+    }});
+});
+</script>
 @endsection

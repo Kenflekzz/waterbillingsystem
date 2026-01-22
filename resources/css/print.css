@@ -4,7 +4,7 @@ body {
             font-size: 13px;
         }
         .bill-container {
-            border: 2px solid #000;
+           
             padding: 15px;
             page-break-inside: avoid;
         }
@@ -54,3 +54,53 @@ body {
             font-weight: bold;
             text-align: center;
         }
+
+        @media print {
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .bill-title,
+    tr.colored-row {          /* class you add to the total row */
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
+
+@page {
+    size: Letter;
+
+}
+
+body {
+    font-family: Arial, sans-serif;
+}
+
+.bill-container {
+  
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+
+
+.copy-label {
+    margin-top: 10px;
+    text-align: right;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+@media print {
+    .cut-line {
+        page-break-inside: avoid;
+    }
+}
+
+/* ----------  remove ALL margins so bills fit the paper ---------- */
+@page { margin: 0; }          /* browser default page margin gone */
+
+@media print {
+    body { margin: 0; }                       /* body 20 px removed */
+    .bill-container { margin-bottom: 0; }     /* kill 10 px between blocks */
+    .cut-line       { display: none; }        /* ditch the dashed divider */
+    table           { margin-bottom: 0; }     /* no extra space under tables */
+    .copy-label     { margin-top: 0; }        /* no space above footer line */
+}

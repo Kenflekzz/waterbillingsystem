@@ -12,7 +12,7 @@
 </ol>
 
 <div class="mb-3">
-    <form method="GET" action="{{ route('admin.reports') }}" class="form-inline" id="filterForm">
+    <form method="GET" action="{{ route('admin.admin_reports') }}" class="form-inline" id="filterForm">
         <label for="status" class="form-label me-2">Filter by Status:</label>
         <select name="status" id="status" class="form-select d-inline-block w-auto me-2">
             <option value="">-- All --</option>
@@ -68,14 +68,28 @@
                             <td>₱{{ number_format($report->arrears ?? 0, 2) }}</td>
                             <td>₱{{ number_format($report->total_penalty, 2) }}</td>
                             <td>₱{{ number_format($report->total_amount, 2) }}</td>
-                            <td>
-                                <span class="badge 
-                                    @if($report->status == 'paid') bg-success
-                                    @elseif($report->status == 'unpaid') bg-warning
-                                    @else bg-danger @endif">
+                           <td>
+                                @php
+                                    $status = strtolower($report->status);
+                                @endphp
+
+                               <span class="badge 
+                                    @if($status === 'paid' || $status === 'paid via gcash')
+                                        bg-success text-white
+                                    @elseif($status === 'unpaid')
+                                        bg-danger text-white
+                                    @elseif(in_array($status, ['partial', 'partially paid']))
+                                        bg-warning text-dark
+                                    @elseif($status === 'disconnected')   // << NEW
+                                        bg-danger text-white              // red
+                                    @else
+                                        bg-secondary text-white
+                                    @endif
+                                ">
                                     {{ ucfirst($report->status ?? 'N/A') }}
                                 </span>
                             </td>
+
                         </tr>
                     @empty
                         <tr><td colspan="12">No records found.</td></tr>
@@ -84,9 +98,6 @@
             </table>
         </div>
 
-        <div class="mt-3">
-            {{ $reports->withQueryString()->links() }}
-        </div>
     </div>
 </div>
 @endsection

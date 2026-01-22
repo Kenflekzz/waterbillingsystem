@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Water Billing System</title>
     <link rel="icon" href="{{ asset('images/MAGALLANES_LOGO.png') }}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     @vite('resources/js/app.js')
     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>

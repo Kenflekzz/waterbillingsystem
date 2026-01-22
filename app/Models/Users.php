@@ -18,6 +18,8 @@ class Users extends Authenticatable
         'phone_number',
         'email',
         'password',
+        'last_login_at',
+        'profile_image',
     ];
 
     protected $hidden = [
@@ -27,5 +29,30 @@ class Users extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'last_login_at' =>'datetime',
+        'otp_expires_at' => 'datetime'
     ];
+
+    public function client()
+    {
+        return $this->hasOne(Clients::class, 'user_id'); 
+    }
+
+    public function reports()
+    {
+        return $this->hasMany(ProblemReport::class, 'client_id');
+    }
+    
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class)->latest();
+    }
+    public function billings()
+    {
+        return $this->hasMany(UserBilling::class, 'user_id');
+    }
+
+
+
+
 }

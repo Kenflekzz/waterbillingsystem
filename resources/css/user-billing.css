@@ -1,0 +1,21 @@
+/* All billing cards */
+.pop-out-card {
+    background-color: #ffffff;         /* White background so cards stand out */
+    border-radius: 1rem;               /* Rounded corners */
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1); /* Subtle shadow */
+    transition: transform 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
+    cursor: pointer;
+}
+
+/* Hover effect for all cards */
+.pop-out-card:hover {
+    transform: translateY(-10px) scale(1.03);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    filter: brightness(1.03);          /* Subtle glow */
+}
+
+/* Extra highlight for the newest bill */
+.pop-out-card.latest-bill-card {
+    border: 2px solid #0d6efd;        /* Blue border for emphasis */
+    box-shadow: 0 20px 40px rgba(13,110,253,0.25);
+}

@@ -5,7 +5,7 @@
                 <!-- Logo -->
                 <div class="text-center py-3">
                     <img src="{{ asset('images/water-surface.webp') }}" alt="Logo"
-                         style="width: 225px; height: 75px; margin-top: -20px"/>
+                         style="width: 225px; height: 75px; margin-top: -50px;"/>
                 </div>
 
                 <!-- Dashboard -->
@@ -41,6 +41,12 @@
                    href="{{ url('admin/reports') }}">
                     <div class="sb-nav-link-icon"><i class="fas fa-list"></i></div>
                     Reports
+                </a>
+
+                 <a class="nav-link {{ Request::is('admin/consumption_report*') ? 'active' : '' }}" 
+                   href="{{ url('admin/consumption_report') }}">
+                    <div class="sb-nav-link-icon"><i class="fas fa-tint"></i></div>
+                    Consumer's Consumption Reports
                 </a>
 
                 <!-- Admins -->

@@ -21,10 +21,7 @@
                 <nav>
                     <ul class="nav">
                         <li class="nav-item">
-                            <a class="nav-link text-white" href="#">{{ $homepage->nav_bills ?? 'Bills' }}</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white" href="#">{{ $homepage->nav_contact ?? 'Contact Us' }}</a>
+                            <a class="nav-link text-white" href="#contact">{{ $homepage->nav_contact ?? 'Contact Us' }}</a>
                         </li>
                         <li class="nav-item">
                             <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#loginChoiceModal">
@@ -156,17 +153,17 @@
         </section>
 
         <!-- Footer -->
-        <footer style="background-color: {{ $homepage->footer_bg ?? 'black' }}; backdrop-filter: blur(5px); color: white;" class="py-5">
+        <footer id="contact" style="background-color: {{ $homepage->footer_bg ?? 'black' }}; backdrop-filter: blur(5px); color: white;" class="py-5">
             <div class="container">
                 <div class="row">
                     <div class="col-md-6 mb-4 mb-md-0">
                         <div class="d-flex align-items-center mb-3">
                             <img src="{{ asset($homepage->logo ?? 'images/MAGALLANES_LOGO.png') }}" alt="Logo" style="height: 100px; width: 100px;" class="me-3">
-                            <h5 class="mb-0">{{ $homepage->footer_title ?? 'Water Billing System' }}</h5>
+                            <h5 class="mb-0">{{ $homepage->footer_title ?? 'Magallanes Water Billing System' }}</h5>
                         </div>
-                        <p class="mb-1"><strong>Address:</strong> {{ $homepage->footer_address ?? 'Poblacion, Magallanes, Agusan del Norte' }}</p>
+                        <p class="mb-1"><strong>Address:</strong> {{ $homepage->footer_address ?? 'Magallanes, Agusan del Norte' }}</p>
                         <p class="mb-1"><strong>Contact:</strong> {{ $homepage->footer_contact ?? '(085) 123-4567' }}</p>
-                        <p class="mb-0"><strong>Email:</strong> <a href="mailto:{{ $homepage->footer_email ?? 'info@waterbilling.com' }}" class="text-white text-decoration-underline">{{ $homepage->footer_email ?? 'info@waterbilling.com' }}</a></p>
+                        <p class="mb-0"><strong>Email:</strong> <a href="mailto:{{ $homepage->footer_email ?? 'magallaneswaterbilling@gmail.com' }}" class="text-white text-decoration-underline">{{ $homepage->footer_email ?? 'magallaneswaterbilling@gmail.com' }}</a></p>
                     </div>
 
                     <div class="col-md-6">
@@ -199,6 +196,14 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    <script>
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+</script>
 </body>
 
 <!-- Login Choice Modal -->

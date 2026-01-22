@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Clients;
 
-class totalSubscriberscontroller extends Controller
+class TotalSubscribersController extends Controller
 {
     public function index(){
 
-        $subscribers = Clients::all();
+        $subscribers = Clients::orderBy('full_name' , 'asc')->get();
         return view('admin.totals.total_subscribers', compact('subscribers'));
     }
 }

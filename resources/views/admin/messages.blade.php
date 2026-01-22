@@ -52,7 +52,9 @@
                             <select name="client_id" id="client_id" class="form-select" required>
                                 <option value="">-- Choose Client --</option>
                                 @foreach($clients as $client)
-                                    <option value="{{ $client->id }}">{{ $client->name }} ({{ $client->contact_number }})</option>
+                                    @if($client->status !== 'CUT')
+                                        <option value="{{ $client->id }}">{{ $client->full_name }} ({{ $client->contact_number }})</option>
+                                    @endif
                                 @endforeach
                             </select>
                         </div>

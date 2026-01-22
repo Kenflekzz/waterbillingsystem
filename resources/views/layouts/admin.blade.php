@@ -15,21 +15,21 @@
     <!-- Custom CSS -->
     @vite(['resources/css/admindashboard.css', 'resources/css/adminloader.css'])
 </head>
+
 <body class="sb-nav-fixed">
 
-    <!-- 🌐 Global Loader -->
-   <div id="global-loader">
-    <div class="loader">
-        <!-- Circular Progress SVG -->
-        <svg width="100" height="100">
-            <circle cx="50" cy="50" r="45"></circle>
-        </svg>
-        <!-- Logo inside -->
-        <img src="{{ asset('images/MAGALLANES_LOGO.png') }}" alt="Logo">
+    <!-- Global Water Droplet Loader -->
+    <div id="global-loader" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.8);display:flex;justify-content:center;align-items:center;z-index:9999;opacity:0;transition:opacity 0.3s;">
+        <div style="width:40px;height:40px;background:#007bff;border-radius:50% 50% 60% 60%;animation:drop 0.8s infinite ease-in-out;"></div>
     </div>
-</div>
 
-
+    <style>
+    @keyframes drop {
+      0% { transform: translateY(-15px) scale(1); opacity:0.9; }
+      50% { transform: translateY(0px) scale(0.85); opacity:1; }
+      100% { transform: translateY(15px) scale(1); opacity:0.9; }
+    }
+    </style>
 
     @include('admin.partials.adminnavbar')
 

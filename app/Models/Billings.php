@@ -12,7 +12,7 @@ class Billings extends Model
         'client_id',
         'billing_id',
         'billing_date',
-        'due_date',
+        'due_date', 
         'reading_date',
         'previous_reading',
         'present_reading',
@@ -25,12 +25,28 @@ class Billings extends Model
     ];
 
     public function client(){
-        return $this->belongsTo(Clients::class);   
+        return $this->belongsTo(Clients::class, 'client_id');   
     }
 
-    public function payment()
-{
-    return $this->hasOne(Payments::class);
-}
+   public function payment()
+    {
+        return $this->hasOne(Payments::class, 'user_billing_id', 'id');
+    }
+
+    
+
+    public function reconnectionFee()
+    {
+        return $this->payment->reconnection_fee ?? 0;
+    }
+
+    public function previousBills()
+    {
+        return $this->hasMany(Billings::class, 'client_id', 'client_id')
+                    ->where('id', '<', $this->id) // only older bills
+                    ->orderByDesc('billing_date');
+    }
+
+
 
 }

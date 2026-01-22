@@ -1,7 +1,11 @@
 import Swal from 'sweetalert2';
 
 document.addEventListener("DOMContentLoaded", function () {
-    // Elements
+
+    /* ========================================================
+       SECTION 1 — BILLING INPUT LOGIC
+    ======================================================== */
+
     const clientSelect = document.getElementById('clientSelect');
     const billingDateInput = document.getElementById('billing_date');
     const arrearsField = document.getElementById('arrears');
@@ -20,132 +24,98 @@ document.addEventListener("DOMContentLoaded", function () {
     const addModal = document.getElementById('addBillingModal');
     const billingIdInput = document.getElementById('billing_id');
 
-    // ✅ Auto-fill fields when client changes
-    if (clientSelect) {
-        clientSelect.addEventListener('change', function() {
-            const selected = this.options[this.selectedIndex];
-            meterNoInput.value = selected.dataset.meter || '';
-            fullNameInput.value = selected.dataset.fullname || '';
-            barangayInput.value = selected.dataset.barangay || '';
-            purokInput.value = selected.dataset.purok || '';
-            if (billingDateInput.value) fetchArrearsAndPenalty();
-        });
-    }
+    // Auto-fill client details
+    clientSelect?.addEventListener('change', () => {
+        const selected = clientSelect.options[clientSelect.selectedIndex];
+        meterNoInput.value = selected.dataset.meter || '';
+        fullNameInput.value = selected.dataset.fullname || '';
+        barangayInput.value = selected.dataset.barangay || '';
+        purokInput.value = selected.dataset.purok || '';
+        if (billingDateInput.value) fetchArrearsAndPenalty();
+    });
 
-    // ✅ Recalculate consumption and bill (tiered)
+    // Calculate consumed water & current bill
     function calculateConsumed() {
         const prev = parseFloat(previousInput.value) || 0;
         const pres = parseFloat(presentInput.value) || 0;
-        let cubicConsumed = pres - prev;
-        cubicConsumed = cubicConsumed > 0 ? cubicConsumed : 0;
+        const cubicMetres = Math.max(0, pres - prev);
 
-        let amount = 0;
+        let waterCharge = 0;
+        let rem = cubicMetres;
 
-        if (cubicConsumed <= 10) {
-            amount = 150; // flat rate
+        if (rem > 0) {
+            waterCharge += 150; rem -= 10;
+            if (rem > 0) { const step = Math.min(10, rem); waterCharge += step * 16; rem -= step; }
+            if (rem > 0) { const step = Math.min(10, rem); waterCharge += step * 19; rem -= step; }
+            if (rem > 0) { const step = Math.min(10, rem); waterCharge += step * 23; rem -= step; }
+            if (rem > 0) { const step = Math.min(10, rem); waterCharge += step * 26; rem -= step; }
+            if (rem > 0) waterCharge += rem * 30;
         } else {
-            amount = 150; // first 10 cu.m.
-            let diff = cubicConsumed - 10;
-
-            let tier = Math.min(diff, 10); // next 11–20 at ₱16
-            amount += tier * 16;
-            diff -= tier;
-
-            tier = Math.min(diff, 10); // next 21–30 at ₱19
-            amount += tier * 19;
-            diff -= tier;
-
-            tier = Math.min(diff, 10); // next 31–40 at ₱23
-            amount += tier * 23;
-            diff -= tier;
-
-            tier = Math.min(diff, 10); // next 41–50 at ₱26
-            amount += tier * 26;
-            diff -= tier;
-
-            if (diff > 0) {
-                amount += diff * 30; // 51+ at ₱30
-            }
+            waterCharge = 150;
         }
 
-        // ✅ Store computed values
-        consumedInput.value = cubicConsumed; // cu.m.
-        currentBillInput.value = amount.toFixed(2); // peso
+        consumedInput.value = cubicMetres;
+        currentBillInput.value = waterCharge.toFixed(2);
         recalculateTotal();
     }
 
-    // ✅ Compute total amount
+    // Recalculate grand total
     function recalculateTotal() {
         const currentBill = parseFloat(currentBillInput.value) || 0;
-        const arrears = parseFloat(arrearsField.value) || 0;
-        const penalty = parseFloat(penaltyField.value) || 0;
-
-        // Treat optional fields as 0 if blank
+        const arrears     = parseFloat(arrearsField.value) || 0;
+        const penalty     = parseFloat(penaltyField.value) || 0;
         const maintenance = parseFloat(maintenanceCostInput.value) || 0;
-        const installation = parseFloat(installationFeeInput.value) || 0;
+        const installation= parseFloat(installationFeeInput.value) || 0;
 
-        const total = currentBill + arrears + penalty + maintenance + installation;
-        totalAmountInput.value = total.toFixed(2);
+        totalAmountInput.value = (currentBill + arrears + penalty + maintenance + installation).toFixed(2);
     }
 
-    // ✅ Fetch arrears and penalty from server
+    // Fetch arrears & penalty from backend (mirrors back-end logic)
     function fetchArrearsAndPenalty() {
         const clientId = clientSelect.value;
         const billingDate = billingDateInput.value;
+        if (!clientId || !billingDate) return;
 
-        if (clientId && billingDate) {
-            fetch(`/admin/billings/${clientId}/arrears?billing_date=${billingDate}`)
-                .then(response => response.json())
-                .then(data => {
-                    arrearsField.value = parseFloat(data.arrears).toFixed(2);
-                    return fetch(`/admin/billings/${clientId}/penalty?billing_date=${billingDate}`);
-                })
-                .then(response => response.json())
-                .then(data => {
-                    penaltyField.value = parseFloat(data.penalty).toFixed(2);
-                    recalculateTotal();
-                })
-                .catch(error => {
-                    console.error('Error fetching arrears/penalty:', error);
-                    arrearsField.value = '0.00';
-                    penaltyField.value = '0.00';
-                    recalculateTotal();
-                });
-        } else {
-            arrearsField.value = '0.00';
-            penaltyField.value = '0.00';
-            recalculateTotal();
-        }
+        fetch(`/admin/billings/${clientId}/previous-current?billing_date=${billingDate}`, { cache: "no-store" })
+            .then(res => res.json())
+            .then(data => {
+                // Backend now returns 'arrears' already computed according to status rules
+                arrearsField.value = parseFloat(data.arrears || 0).toFixed(2);
+
+                // Fetch penalty separately
+                return fetch(`/admin/billings/${clientId}/penalty?billing_date=${billingDate}`, { cache: "no-store" });
+            })
+            .then(res => res.json())
+            .then(data => {
+                penaltyField.value = (parseFloat(data.penalty) || 0).toFixed(2);
+                recalculateTotal();
+            })
+            .catch(() => {
+                arrearsField.value = "0.00";
+                penaltyField.value = "0.00";
+                recalculateTotal();
+            });
     }
 
-    // ✅ Event listeners
-    previousInput?.addEventListener('input', calculateConsumed);
-    presentInput?.addEventListener('input', calculateConsumed);
-    maintenanceCostInput?.addEventListener('input', recalculateTotal);
-    installationFeeInput?.addEventListener('input', recalculateTotal);
-    billingDateInput?.addEventListener('change', () => {
-        if (clientSelect.value) fetchArrearsAndPenalty();
-    });
+    // Input event listeners
+    [previousInput, presentInput].forEach(input => input?.addEventListener('input', calculateConsumed));
+    [maintenanceCostInput, installationFeeInput, consumedInput].forEach(input => input?.addEventListener('input', recalculateTotal));
+    billingDateInput?.addEventListener('change', () => { if (clientSelect.value) fetchArrearsAndPenalty(); });
 
-    // ✅ On modal show: reset fields & fetch next billing ID
+    // Modal logic
     if (addModal) {
         addModal.addEventListener('shown.bs.modal', () => {
-            arrearsField.value = '0.00';
-            penaltyField.value = '0.00';
+            // Reset fields
+            [currentBillInput, maintenanceCostInput, installationFeeInput, consumedInput].forEach(input => input.value = '');
             totalAmountInput.value = '0.00';
-            currentBillInput.value = '';
-            maintenanceCostInput.value = ''; // left blank but treated as 0
-            installationFeeInput.value = ''; // left blank but treated as 0
-            consumedInput.value = '';
 
+            // Fetch next billing ID
             fetch("billings/next-id")
-                .then(response => response.json())
+                .then(res => res.json())
                 .then(data => { billingIdInput.value = data.next_billing_id; })
-                .catch(error => {
-                    console.error(error);
-                    billingIdInput.value = "Error";
-                });
+                .catch(() => { billingIdInput.value = "Error"; });
 
+            // Fetch latest arrears & penalty
             if (clientSelect.value && billingDateInput.value) fetchArrearsAndPenalty();
         });
 
@@ -154,41 +124,61 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // ✅ SweetAlert2 success or error
+    /* ========================================================
+       SECTION 2 — SWEETALERT SESSION MESSAGES
+    ======================================================== */
     if (document.getElementById('hasSuccess')?.value === '1') {
-        Swal.fire({
-            icon: 'success',
-            title: 'Success',
-            draggable: true,
-            text: document.getElementById('successMessage').value,
-            confirmButtonColor: '#3085d6'
-        });
+        Swal.fire({ icon: 'success', title: 'Success', draggable: true, text: document.getElementById('successMessage').value, confirmButtonColor: '#3085d6' });
     }
     if (document.getElementById('hasErrors')?.value === '1') {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: document.getElementById('errorMessages').value,
-            confirmButtonColor: '#d33'
-        });
+        Swal.fire({ icon: 'error', title: 'Error', draggable: true, text: document.getElementById('errorMessages').value, confirmButtonColor: '#d33' });
     }
 
-    // ✅ Confirm delete with SweetAlert2
-    document.addEventListener('submit', function (e) {
+    /* ========================================================
+       SECTION 3 — AJAX FORM SUBMIT
+    ======================================================== */
+    document.querySelectorAll('.ajax-form').forEach(form => {
+        form.addEventListener('submit', async e => {
+            e.preventDefault();
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch(form.action, {
+                    method: form.method,
+                    body: formData,
+                    headers: { "X-Requested-With": "XMLHttpRequest", "Accept": "application/json" }
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    const modalEl = form.closest('.modal');
+                    if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
+                    Swal.fire("Success", data.message || "Billing saved successfully.", "success").then(() => window.location.reload());
+                } else {
+                    Swal.fire("Error", data.message || "Something went wrong.", "error");
+                }
+            } catch {
+                Swal.fire("Error", "Failed to save billing.", "error");
+            }
+        });
+    });
+
+    /* ========================================================
+       SECTION 4 — DELETE CONFIRM
+    ======================================================== */
+    document.addEventListener('submit', e => {
         if (e.target.matches('.delete-billing-form')) {
             e.preventDefault();
             Swal.fire({
                 title: "Are you sure?",
-                text: "You won't be able to revert this!",
+                text: "This will delete the billing permanently.",
                 icon: "warning",
                 showCancelButton: true,
-                draggable: true,
                 confirmButtonColor: "#3085d6",
                 cancelButtonColor: "#d33",
                 confirmButtonText: "Yes, delete it!"
-            }).then((result) => {
-                if (result.isConfirmed) e.target.submit();
-            });
+            }).then(result => { if (result.isConfirmed) e.target.submit(); });
         }
     });
+
 });

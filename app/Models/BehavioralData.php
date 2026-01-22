@@ -7,9 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 class BehavioralData extends Model
 {
     protected $table = 'behavioral_data';
-    protected $fillable = ['metric_name', 'value', 'meta'];
+
+    // Allow all fields you want to mass-assign, including the timestamp
+    protected $fillable = [
+        'user_id',
+        'metric_name',
+        'value',
+        'meta',
+        'created_at',   // <-- add this
+    ];
+
     protected $casts = [
-        'meta' => 'array'
+        'meta' => 'array',
+        'created_at' => 'datetime', // keep casting as datetime
     ];
 }
-

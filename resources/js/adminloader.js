@@ -1,62 +1,57 @@
 const loader = document.getElementById("global-loader");
 
-// Delay before hiding loader (matches progress duration + fade)
-const LOADER_DELAY = 500;
-
-function showLoader() {
+window.showLoader = () => {
+    if (!loader) return;
     loader.style.display = "flex";
-    loader.style.opacity = "1"; // reset opacity
-}
-
-function hideLoader() {
-    setTimeout(() => {
-        loader.style.opacity = "0"; // fade out
-        setTimeout(() => {
-            loader.style.display = "none";
-        }, 500); // wait for fade-out transition
-    }, LOADER_DELAY);
-}
-
-// Hide loader once page fully loads
-window.addEventListener("load", () => {
-    hideLoader();
-});
-
-// ✅ Fetch Patch
-const originalFetch = window.fetch;
-window.fetch = async (...args) => {
-    try {
-        showLoader();
-        const response = await originalFetch(...args);
-        hideLoader();
-        return response;
-    } catch (error) {
-        hideLoader();
-        throw error;
-    }
+    requestAnimationFrame(() => loader.style.opacity = "1");
 };
 
-// ✅ Axios Support
-if (window.axios) {
-    window.axios.interceptors.request.use(config => {
-        showLoader();
-        return config;
-    }, error => {
-        hideLoader();
-        return Promise.reject(error);
-    });
+window.hideLoader = () => {
+    if (!loader) return;
+    loader.style.opacity = "0";
+    setTimeout(() => loader.style.display = "none", 300);
+};
 
-    window.axios.interceptors.response.use(response => {
-        hideLoader();
-        return response;
-    }, error => {
-        hideLoader();
-        return Promise.reject(error);
-    });
-}
+// Hide loader on page load/back-forward
+window.addEventListener("load", window.hideLoader);
+window.addEventListener("pageshow", window.hideLoader);
 
-// ✅ jQuery AJAX Support
-if (window.jQuery) {
-    $(document).ajaxStart(() => showLoader());
-    $(document).ajaxStop(() => hideLoader());
-}
+let blockLoader = false;
+
+// --------------------
+// Link Clicks
+// --------------------
+document.addEventListener('click', (e) => {
+    const link = e.target.closest('a');
+    if (!link) return;
+
+    const href = link.getAttribute('href');
+    if (!href || href.startsWith('#') || link.target === '_blank') return;
+
+    // Stop default and show loader
+    e.preventDefault();
+    if (typeof window.showLoader === 'function') window.showLoader();
+
+    // Delay navigation
+    setTimeout(() => {
+        window.location.href = href;
+    }, 50);
+});
+
+// --------------------
+// Forms (AJAX-safe)
+// --------------------
+document.addEventListener("submit", (e) => {
+    const ajaxForm = e.target.closest(".ajax-form, .delete-payment-form, .delete-billing-form");
+    if (ajaxForm) blockLoader = true;
+});
+
+// --------------------
+// Override fetch to prevent loader for AJAX
+// --------------------
+window.fetch = new Proxy(window.fetch, {
+    apply(target, thisArg, args) {
+        blockLoader = true;
+        return Reflect.apply(target, thisArg, args);
+    }
+});

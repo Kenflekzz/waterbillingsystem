@@ -10,11 +10,48 @@
     <li class="breadcrumb-item active">Total Unpaid Consumers</li>
 </ol>
 
-<div class="card mb-4">
-    <div class="card-body">
-        Below is the table showing all unpaid payment records.
-    </div>
+<div class="mb-3">
+    <form method="GET" action="{{ route('admin.unpaid_consumers') }}" class="form-inline">
+
+        <label for="name" class="form-label me-2">Filter By Name:</label>
+        <input
+            type="text"
+            name="name"
+            id="name"
+            class="form-control d-inline-block w-auto me-3"
+            placeholder="Search name"
+            value="{{ request('name') }}">
+
+        <label for="billing_month" class="form-label me-2">Filter By Month:</label>
+        <input
+            type="month"
+            name="billing_month"
+            id="billing_month"
+            class="form-control d-inline-block w-auto me-2"
+            value="{{ request('billing_month') }}">
+
+        <button class="btn btn-primary me-2">
+            <i class="fas fa-filter"></i> Filter
+        </button>
+
+        <a href="{{ route('admin.unpaid_consumers') }}" class="btn btn-secondary">
+            Reset
+        </a>
+
+    </form>
 </div>
+
+
+<div class="mb-3 text-end">
+    <a
+        href="{{ route('admin.print_unpaid_consumers', request()->query()) }}"
+        target="_blank"
+        class="btn btn-secondary">
+        <i class="fas fa-print"></i> Print Filtered Result
+    </a>
+</div>
+
+
 
 <div class="card mb-4">
     <div class="card-header">

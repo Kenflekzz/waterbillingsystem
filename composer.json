@@ -7,6 +7,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "bacon/bacon-qr-code": "^2.0",
         "barryvdh/laravel-dompdf": "^3.1",
         "erag/laravel-pwa": "^1.8",
         "inertiajs/inertia-laravel": "^2.0",
@@ -14,6 +15,7 @@
         "laravel/tinker": "^2.10.1",
         "livewire/livewire": "^3.6",
         "pusher/pusher-php-server": "^7.2",
+        "simplesoftwareio/simple-qrcode": "^4.2",
         "twilio/sdk": "^8.8"
     },
     "require-dev": {

@@ -1,0 +1,50 @@
+/* ===============================
+   FILTER PILLS
+================================ */
+.filter-pill-container {
+  padding: 0.5rem;
+}
+
+/* Pill look */
+.filter-pill {
+  min-width: 130px;
+  border-radius: 50px;
+  padding: 0.55rem 1rem;
+  border: 2px solid #ddd;
+  background-color: #fff;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+/* Hover animation */
+.filter-pill:hover {
+  border-color: #741aac;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(116,26,172,0.15);
+}
+
+/* Active filter */
+.filter-pill.active {
+  background: linear-gradient(135deg, #741aac, #9b4dca);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 8px 20px rgba(116,26,172,0.35);
+}
+
+/* Smooth focus */
+.filter-pill:focus {
+  outline: none;
+  box-shadow: 0 0 0 0.15rem rgba(116,26,172,0.25);
+}
+
+/* Clear button */
+.filter-clear {
+  border-radius: 50px;
+  padding: 0.55rem 1.2rem;
+  transition: all 0.25s ease;
+}
+
+.filter-clear:hover {
+  transform: scale(1.05);
+}

@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Homepage;
-
+use App\Models\UserAnnouncement;
 class HomepageController extends Controller
 {
     // -------------------------
@@ -58,6 +58,16 @@ class HomepageController extends Controller
             $data['announcement_image'] = $request->file('announcement_image')->store('homepage', 'public');
         }
 
+        UserAnnouncement::updateOrCreate(
+            ['id' => 1], // you can choose to always keep one record, or use other logic
+            [
+                'title' => $data['announcement_heading'] ?? '',
+                'content' => $data['announcement_text'] ?? '',
+                'announcement_image' => $data['announcement_image'] ?? null,
+                'scheduled_date' => now(),
+            ]
+        );
+
         // Advisories (3 structured items)
         $advisoriesData = [];
         if ($request->has('advisories')) {
@@ -104,8 +114,7 @@ class HomepageController extends Controller
     {
         $homepage = Homepage::first();
 
-        // With casts in your model, advisories and connect_images
-        // are already arrays, no need to decode manually
+        $announcements = UserAnnouncement::orderBy('created_at' , 'desc')->get();
         return view('welcome', compact('homepage'));
     }
 }

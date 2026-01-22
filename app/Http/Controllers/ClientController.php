@@ -38,6 +38,8 @@ class ClientController extends Controller
             'contact_number' => 'required|string|max:11',
             'installation_date' => 'nullable|date',
             'date_cut' => 'nullable|date',
+            'meter_status'     => 'required|in:old,replacement',
+            'replacement_date' => 'nullable|date',
             'meter_series' => 'required|string|max:255',
         ], [
             'meter_no.unique' => 'The meter number has already been taken.',
@@ -76,6 +78,8 @@ class ClientController extends Controller
             'date_cut' => 'nullable|date',
             'installation_date' => 'nullable|date',
             'meter_series' => 'nullable|string|max:255',
+            'replacement_date'  => 'nullable|date',                
+            'meter_status' => 'nullable|string|max:50',
             'status' => 'nullable|string|max:50',
         ],[
             'meter_no.unique' => 'The meter number has already been taken.',
