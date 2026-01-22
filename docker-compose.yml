@@ -12,6 +12,7 @@ services:
     restart: unless-stopped
     working_dir: /var/www
     volumes:
+      - ./:/var/www
       - ./storage:/var/www/storage   # keep logs & cache persistent
     networks:
       - laravel

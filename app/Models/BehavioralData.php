@@ -12,9 +12,11 @@ class BehavioralData extends Model
     protected $fillable = [
         'user_id',
         'metric_name',
+        'barangay',
         'value',
         'meta',
         'created_at',   // <-- add this
+        'updated_at'
     ];
 
     protected $casts = [

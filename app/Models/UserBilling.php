@@ -23,6 +23,7 @@ class UserBilling extends Model
         'current_bill',
         'penalty',
         'consumed',
+        'total_amount',
     ];
 
     public function user()
