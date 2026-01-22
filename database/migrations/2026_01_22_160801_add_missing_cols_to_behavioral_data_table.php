@@ -9,9 +9,9 @@ return new class extends Migration
     public function up()
     {
         Schema::table('behavioral_data', function (Blueprint $table) {
-            $table->unsignedBigInteger('user_id')->after('id');
-            $table->string('barangay', 255)->after('user_id');
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            if (!Schema::hasColumn('behavioral_data', 'barangay')) {
+                $table->string('barangay', 255)->after('user_id');
+            }
         });
     }
 
