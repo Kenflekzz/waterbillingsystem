@@ -12,10 +12,11 @@ return new class extends Migration
     public function up()
     {
         Schema::table('payments', function (Blueprint $table) {
-            $table->string('receipt_path')->nullable();
+            if (!Schema::hasColumn('payments', 'receipt_path')) {
+                $table->string('receipt_path')->nullable();
+            }
         });
     }
-
 
     /**
      * Reverse the migrations.
@@ -23,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('payments', function (Blueprint $table) {
-            //
+            if (Schema::hasColumn('payments', 'receipt_path')) {
+                $table->dropColumn('receipt_path');
+            }
         });
     }
 };
