@@ -48,7 +48,7 @@
     </div>
 @endsection
 
-@vite('resource/css/admins.css')
+@vite('resources/css/admins.css')
 @section('scripts')
     <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js"></script>
     <script src="{{ asset('admin/js/datatables-simple-demo.js') }}"></script>
