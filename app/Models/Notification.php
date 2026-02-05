@@ -10,22 +10,21 @@ class Notification extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',          // the user who will receive the notification
-        'type',             // "billing_issued" or "problem_resolved"
-        'title',            // short title
-        'message',          // body/details
-        'data',             // extra JSON data (billing id, problem id, etc.)
-        'is_read',          // 0 unread, 1 read
+        'user_id',
+        'type',
+        'title',
+        'message',
+        'is_read',
+        'read_at',
     ];
 
     protected $casts = [
-        'data' => 'array',
         'is_read' => 'boolean',
+        'read_at' => 'datetime',
     ];
 
-    // Relationship: notification belongs to user
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Users::class, 'user_id');
     }
 }

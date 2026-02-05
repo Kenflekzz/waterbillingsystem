@@ -50,8 +50,9 @@
     <tr>
         <th>Group</th>
         <th>Meter No.</th>
-        <th>Meter Status</th>        {{-- NEW --}}
-        <th>Replacement Date</th>    {{-- NEW --}}
+        <th>Old Meter No.</th>       {{-- NEW: Show previous meter number --}}
+        <th>Meter Status</th>
+        <th>Replacement Date</th>
         <th>Client Full Name</th>
         <th>Barangay</th>
         <th>Purok</th>
@@ -69,9 +70,18 @@
     @foreach($clients as $client)
         <tr>
             <td>{{ $client->group }}</td>
-            <td>{{ $client->meter_no }}</td>
-            <td>{{ ucfirst($client->meter_status ?? 'old') }}</td>     {{-- NEW --}}
-            <td>{{ $client->replacement_date ? \Carbon\Carbon::parse($client->replacement_date)->format('M d, Y') : '—' }}</td> {{-- NEW --}}
+            <td>
+                <span class="fw-bold">{{ $client->meter_no }}</span>
+            </td>
+            <td>
+                @if($client->old_meter_no)
+                    <span class="text-muted text-decoration-line-through small">{{ $client->old_meter_no }}</span>
+                @else
+                    <span class="text-muted small">—</span>
+                @endif
+            </td>
+            <td>{{ ucfirst($client->meter_status ?? 'old') }}</td>
+            <td>{{ $client->replacement_date ? \Carbon\Carbon::parse($client->replacement_date)->format('M d, Y') : '—' }}</td>
             <td>{{ $client->full_name }}</td>
             <td>{{ $client->barangay }}</td>
             <td>{{ $client->purok }}</td>
@@ -125,10 +135,18 @@
                                 <label class="form-label">Full Name</label>
                                 <input type="text" class="form-control" name="full_name" value="{{ $client->full_name }}" required>
                             </div>
+                            
+                            {{-- Meter Number with Old Meter Display --}}
                             <div class="mb-3">
-                                <label class="form-label">Meter No.</label>
+                                <label class="form-label">Current Meter No.</label>
                                 <input type="text" class="form-control" name="meter_no" value="{{ $client->meter_no }}" required>
+                                @if($client->old_meter_no)
+                                    <div class="form-text text-muted">
+                                        Previous: <span class="text-decoration-line-through">{{ $client->old_meter_no }}</span>
+                                    </div>
+                                @endif
                             </div>
+                            
                             <div class="mb-3">
                                 <label class="form-label">Group</label>
                                 <input type="text" class="form-control" name="group" value="{{ $client->group }}" required>
@@ -267,7 +285,7 @@
 @vite('resources/css/clients.css')
 
 @section('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js "></script>
     <script src="{{ asset('admin/js/datatables-simple-demo.js') }}"></script>
     <script>
         window.showSuccessModal = @json(session('success') ? true : false);

@@ -50,3 +50,8 @@ COPY --chown=$USER:www-data . .
 RUN composer install --no-dev --optimize-autoloader
 
 EXPOSE 9000
+
+# -----------------------------
+# Startup: Clear config cache and start PHP-FPM
+# -----------------------------
+CMD ["sh", "-c", "php artisan config:clear && php-fpm"]

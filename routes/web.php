@@ -36,7 +36,15 @@ Route::get('/', function () {
     $homepage = Homepage::first(); // get the first homepage row
     return view('welcome', compact('homepage'));
 })->name('home');
+Route::get('view-meternumber', function () {
+    return view('view_MeterNumber');
+})->name('ViewMeterNumber');
 
+// Public page for reading water bill
+Route::get('read-waterbill', function () {
+    $homepage = Homepage::first() ?? new \stdClass();
+    return view('read_WaterBill', compact('homepage'));
+})->name('ReadWaterBill');
 // --------------------
 // User Routes
 // --------------------

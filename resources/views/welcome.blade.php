@@ -173,13 +173,13 @@
                                 $quickLinks = $homepage->footer_quicklinks ?? [];
                                 if(empty($quickLinks)) {
                                     $quickLinks = [
-                                        ['title' => 'How to find your meter number', 'link' => '#'],
-                                        ['title' => 'How to read your water bill', 'link' => '#'],
+                                        ['title' => 'How to find your meter number', 'link' => route('ViewMeterNumber')],
+                                        ['title' => 'How to read your water bill', 'link' => route('ReadWaterBill')],
                                         ['title' => 'Our Company', 'link' => '#'],
                                         ['title' => 'Terms of Use', 'link' => '#'],
                                         ['title' => 'Privacy Policy', 'link' => '#'],
                                     ];
-                                }
+                                }   
                             @endphp
                             @foreach($quickLinks as $link)
                                 <li><a href="{{ $link['link'] }}" class="text-white text-decoration-none">{{ $link['title'] }}</a></li>

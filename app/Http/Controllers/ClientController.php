@@ -47,6 +47,9 @@ class ClientController extends Controller
 
         ]);
 
+        // Set old_meter_no as null for new clients
+        $validated['old_meter_no'] = null;
+
         Clients::create($validated);
 
         return redirect()->route('admin.clients.index')->with('success', 'Client created successfully.');
@@ -63,7 +66,7 @@ class ClientController extends Controller
     public function edit(Clients $client)
     {
         return view('admin.clients.edit', compact('client'));
-    }
+    }           
 
     // Update the specified resource in storage.
     public function update(Request $request, Clients $client)
@@ -85,9 +88,12 @@ class ClientController extends Controller
             'meter_no.unique' => 'The meter number has already been taken.',
         ]);
 
+        // old_meter_no is automatically handled by the model's booted() method
+        // The updating event will store the current meter_no as old_meter_no before the update
+
         $client->update($validated);
 
-        return redirect()->route('admin.clients.index')->with('success', 'Client updated successfully.');
+        return redirect()->route('admin.clients.index')->with('success', 'Client updated successfully. Meter number synchronized.');
     }
 
     // Remove the specified resource from storage.
