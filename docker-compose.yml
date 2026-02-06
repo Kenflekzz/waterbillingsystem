@@ -9,7 +9,6 @@ services:
         USER: user
         UID: 1000
     image: laravel-app
-    container_name: laravel-app
     restart: unless-stopped
     working_dir: /var/www
     env_file:
@@ -22,14 +21,13 @@ services:
     depends_on:
       - db
     ports:
-      - "5173:5173"
+      - "5173:5173"   # Vite stays as-is
 
   nginx:
     image: nginx:alpine
-    container_name: laravel-nginx
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8081:80"     # changed to 8081 to avoid XAMPP Apache conflict
     volumes:
       - ./:/var/www
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
@@ -39,7 +37,6 @@ services:
 
   db:
     image: mysql:8.0
-    container_name: laravel-db
     restart: unless-stopped
     env_file:
       - .env.docker
@@ -52,6 +49,8 @@ services:
       - db-data:/var/lib/mysql
     networks:
       - laravel
+    ports:
+      - "3307:3306"   # changed to 3307 to avoid XAMPP MySQL conflict
 
 networks:
   laravel:
