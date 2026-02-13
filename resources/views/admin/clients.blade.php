@@ -10,6 +10,35 @@
         <li class="breadcrumb-item active">Clients</li>
     </ol>
 
+    {{-- Success Message --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    {{-- Error Message --}}
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    {{-- Validation Errors (General) --}}
+    @if($errors->any() && !session('error'))
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <strong><i class="fas fa-exclamation-triangle me-2"></i> Please fix the following errors:</strong>
+            <ul class="mb-0 mt-2">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <div class="mb-3 text-end">
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClientModal">
             <i class="fas fa-plus"></i> Add Client
@@ -111,7 +140,7 @@
                 <form action="{{ route('admin.clients.destroy', $client->id) }}" method="POST" class="d-inline delete-client-form">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                    <button type="submit" class="btn btn-sm btn-danger" title="Delete" onclick="return confirm('Are you sure you want to delete this client?');">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </form>
@@ -130,16 +159,37 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
+                            {{-- Display errors specific to this edit form --}}
+                            @if($errors->any() && old('_method') == 'PUT' && old('client_id') == $client->id)
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    <ul class="mb-0">
+                                        @foreach($errors->all() as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            @endif
+
+                            {{-- Hidden field to track which client is being edited --}}
+                            <input type="hidden" name="client_id" value="{{ $client->id }}">
+                            
                             {{-- existing fields --}}
                             <div class="mb-3">
                                 <label class="form-label">Full Name</label>
-                                <input type="text" class="form-control" name="full_name" value="{{ $client->full_name }}" required>
+                                <input type="text" class="form-control @error('full_name') is-invalid @enderror" name="full_name" value="{{ old('full_name', $client->full_name) }}" required>
+                                @error('full_name')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                             
                             {{-- Meter Number with Old Meter Display --}}
                             <div class="mb-3">
                                 <label class="form-label">Current Meter No.</label>
-                                <input type="text" class="form-control" name="meter_no" value="{{ $client->meter_no }}" required>
+                                <input type="text" class="form-control @error('meter_no') is-invalid @enderror" name="meter_no" value="{{ old('meter_no', $client->meter_no) }}" required>
+                                @error('meter_no')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                                 @if($client->old_meter_no)
                                     <div class="form-text text-muted">
                                         Previous: <span class="text-decoration-line-through">{{ $client->old_meter_no }}</span>
@@ -149,52 +199,82 @@
                             
                             <div class="mb-3">
                                 <label class="form-label">Group</label>
-                                <input type="text" class="form-control" name="group" value="{{ $client->group }}" required>
+                                <input type="text" class="form-control @error('group') is-invalid @enderror" name="group" value="{{ old('group', $client->group) }}" required>
+                                @error('group')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Barangay</label>
-                                <input type="text" class="form-control" name="barangay" value="{{ $client->barangay }}" required>
+                                <input type="text" class="form-control @error('barangay') is-invalid @enderror" name="barangay" value="{{ old('barangay', $client->barangay) }}" required>
+                                @error('barangay')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Purok</label>
-                                <input type="text" class="form-control" name="purok" value="{{ $client->purok }}" required>
+                                <input type="text" class="form-control @error('purok') is-invalid @enderror" name="purok" value="{{ old('purok', $client->purok) }}" required>
+                                @error('purok')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Contact Number</label>
-                                <input type="text" class="form-control" name="contact_number" value="{{ $client->contact_number }}" required>
+                                <input type="text" class="form-control @error('contact_number') is-invalid @enderror" name="contact_number" value="{{ old('contact_number', $client->contact_number) }}" required>
+                                @error('contact_number')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Date Cut</label>
-                                <input type="date" class="form-control" name="date_cut" value="{{ $client->date_cut }}">
+                                <input type="date" class="form-control @error('date_cut') is-invalid @enderror" name="date_cut" value="{{ old('date_cut', $client->date_cut) }}">
+                                @error('date_cut')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Installation Date</label>
-                                <input type="date" class="form-control" name="installation_date" value="{{ $client->installation_date }}" required>
+                                <input type="date" class="form-control @error('installation_date') is-invalid @enderror" name="installation_date" value="{{ old('installation_date', $client->installation_date) }}" required>
+                                @error('installation_date')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Meter Series</label>
-                                <input type="text" class="form-control" name="meter_series" value="{{ $client->meter_series }}" required>
+                                <input type="text" class="form-control @error('meter_series') is-invalid @enderror" name="meter_series" value="{{ old('meter_series', $client->meter_series) }}" required>
+                                @error('meter_series')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
 
                             {{-- NEW FIELDS --}}
                             <div class="mb-3">
                                 <label class="form-label">Meter Status</label>
-                                <select class="form-select" name="meter_status" required>
-                                    <option value="old" {{ ($client->meter_status ?? 'old') === 'old' ? 'selected' : '' }}>Old</option>
-                                    <option value="replacement" {{ ($client->meter_status ?? 'old') === 'replacement' ? 'selected' : '' }}>Replacement</option>
+                                <select class="form-select @error('meter_status') is-invalid @enderror" name="meter_status" required>
+                                    <option value="old" {{ old('meter_status', $client->meter_status ?? 'old') === 'old' ? 'selected' : '' }}>Old</option>
+                                    <option value="replacement" {{ old('meter_status', $client->meter_status ?? 'old') === 'replacement' ? 'selected' : '' }}>Replacement</option>
                                 </select>
+                                @error('meter_status')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Replacement Date</label>
-                                <input type="date" class="form-control" name="replacement_date" value="{{ $client->replacement_date }}">
+                                <input type="date" class="form-control @error('replacement_date') is-invalid @enderror" name="replacement_date" value="{{ old('replacement_date', $client->replacement_date) }}">
+                                @error('replacement_date')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Status</label>
-                                <select class="form-select" name="status" required>
-                                    <option value="CURC" {{ $client->status == 'CURC' ? 'selected' : '' }}>CURC</option>
-                                    <option value="CUT" {{ $client->status == 'CUT' ? 'selected' : '' }}>CUT</option>
+                                <select class="form-select @error('status') is-invalid @enderror" name="status" required>
+                                    <option value="CURC" {{ old('status', $client->status) == 'CURC' ? 'selected' : '' }}>CURC</option>
+                                    <option value="CUT" {{ old('status', $client->status) == 'CUT' ? 'selected' : '' }}>CUT</option>
                                 </select>
+                                @error('status')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -225,50 +305,81 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        @if ($errors->any())
-                            <div class="alert alert-danger">
-                                <ul class="mb-0">
-                                    @foreach ($errors->all() as $error)
+                        {{-- Validation Errors for Add Form --}}
+                        @if($errors->any() && !old('_method'))
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <strong>Please correct the following errors:</strong>
+                                <ul class="mb-0 mt-2">
+                                    @foreach($errors->all() as $error)
                                         <li>{{ $error }}</li>
                                     @endforeach
                                 </ul>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                             </div>
                         @endif
+
                         <div class="mb-3">
                             <label class="form-label">Full Name</label>
-                            <input type="text" class="form-control" name="full_name" value="{{ old('full_name') }}" required>
+                            <input type="text" class="form-control @error('full_name') is-invalid @enderror" name="full_name" value="{{ old('full_name') }}" required>
+                            @error('full_name')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Meter Number</label>
-                            <input type="text" class="form-control" name="meter_no" value="{{ old('meter_no') }}" required>
+                            <input type="text" class="form-control @error('meter_no') is-invalid @enderror" name="meter_no" value="{{ old('meter_no') }}" required>
+                            @error('meter_no')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Group</label>
-                            <input type="text" class="form-control" name="group" required>
+                            <input type="text" class="form-control @error('group') is-invalid @enderror" name="group" value="{{ old('group') }}" required>
+                            @error('group')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Barangay</label>
-                            <input type="text" class="form-control" name="barangay" required>
+                            <input type="text" class="form-control @error('barangay') is-invalid @enderror" name="barangay" value="{{ old('barangay') }}" required>
+                            @error('barangay')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Purok</label>
-                            <input type="text" class="form-control" name="purok" required>
+                            <input type="text" class="form-control @error('purok') is-invalid @enderror" name="purok" value="{{ old('purok') }}" required>
+                            @error('purok')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                          <div class="mb-3">
-                            <label class="form-label">Contact_Number</label>
-                            <input type="text" class="form-control" name="contact_number" required>
+                            <label class="form-label">Contact Number</label>
+                            <input type="text" class="form-control @error('contact_number') is-invalid @enderror" name="contact_number" value="{{ old('contact_number') }}" required>
+                            @error('contact_number')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Date Cut</label>
-                            <input type="date" class="form-control" name="date_cut">
+                            <input type="date" class="form-control @error('date_cut') is-invalid @enderror" name="date_cut" value="{{ old('date_cut') }}">
+                            @error('date_cut')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Installation Date</label>
-                            <input type="date" class="form-control" name="installation_date">
+                            <input type="date" class="form-control @error('installation_date') is-invalid @enderror" name="installation_date" value="{{ old('installation_date') }}">
+                            @error('installation_date')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Meter Series</label>
-                            <input type="text" class="form-control" name="meter_series" required>
+                            <input type="text" class="form-control @error('meter_series') is-invalid @enderror" name="meter_series" value="{{ old('meter_series') }}" required>
+                            @error('meter_series')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                         
                     </div>
@@ -285,14 +396,15 @@
 @vite('resources/css/clients.css')
 
 @section('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js "></script>
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js  "></script>
     <script src="{{ asset('admin/js/datatables-simple-demo.js') }}"></script>
     <script>
         window.showSuccessModal = @json(session('success') ? true : false);
         window.successMessage = @json(session('success') ?? '');
         window.showErrorModal = @json(session('error') ? true : false);
         window.errorMessage = @json(session('error') ?? '');
-        window.showAddClientModalOnLoad = @json($errors->any() ? true : false);
+        window.showAddClientModalOnLoad = @json($errors->any() && !old('_method') ? true : false);
+        window.showEditClientModalOnLoad = @json($errors->any() && old('_method') == 'PUT' ? old('client_id') : false);
     </script>
     @vite('resources/js/clients.js')
 @endsection

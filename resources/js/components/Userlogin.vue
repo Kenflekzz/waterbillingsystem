@@ -153,7 +153,7 @@ export default {
   align-items: center;
   min-height: 80vh;
   background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)),
-              url('/images/Flag_of_Magallanes,_Agusan_del_Norte.webp') no-repeat center center;
+              url('/images/1000019372.jpg') no-repeat center center;
   background-size: cover;
 }
 

@@ -60,4 +60,16 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById('filterForm').submit();
         });
     }
+
+    if (window.showAddClientModalOnLoad) {
+        var addModal = new bootstrap.Modal(document.getElementById('addClientModal'));
+        addModal.show();
+    }
+    
+    // Reopen edit modal if there were errors
+    if (window.showEditClientModalOnLoad) {
+        var editModal = new bootstrap.Modal(document.getElementById('editClientModal' + window.showEditClientModalOnLoad));
+        editModal.show();
+    }
 });
+
