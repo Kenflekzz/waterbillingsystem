@@ -18,20 +18,20 @@ class MessageController extends Controller
     }
 
     private function formatPhoneNumber($number): ?string
-{
-    $n = preg_replace('/\D+/', '', $number);
+    {
+        $n = preg_replace('/\D+/', '', $number);
 
-    if (strlen($n) === 10 && Str::startsWith($n, '9')) {
-        $n = '63' . $n;
+        if (strlen($n) === 10 && Str::startsWith($n, '9')) {
+            $n = '63' . $n;
+        }
+        if (strlen($n) === 11 && Str::startsWith($n, '09')) {
+            $n = '63' . substr($n, 1);
+        }
+
+        return strlen($n) === 12 ? $n : null;
     }
-    if (strlen($n) === 11 && Str::startsWith($n, '09')) {
-        $n = '63' . substr($n, 1);
-    }
 
-    return strlen($n) === 12 ? $n : null;   // 639xxxxxxxxx  (no "+")
-}
-
-    // 📩 Send to all clients
+    // 📩 Send to all clients (EXCEPT CUT)
     public function sendGeneral(Request $request)
     {
         $request->validate([
@@ -39,7 +39,8 @@ class MessageController extends Controller
             'body' => 'required|string',
         ]);
 
-        $clients = Clients::all();
+        // 🔴 FIX: Exclude CUT status clients
+        $clients = Clients::where('status', '!=', 'CUT')->get();
         $failed = [];
 
         foreach ($clients as $client) {
@@ -67,7 +68,7 @@ class MessageController extends Controller
         return back()->with('success', 'General message sent successfully!');
     }
 
-    // 📨 Send to a specific client
+    // 📨 Send to a specific client (check CUT status)
     public function sendPersonal(Request $request)
     {
         $request->validate([
@@ -77,10 +78,16 @@ class MessageController extends Controller
         ]);
 
         $client = Clients::findOrFail($request->client_id);
+
+        // 🔴 FIX: Block if CUT status
+        if ($client->status === 'CUT') {
+            return back()->with('error', 'Cannot send: Client ' . $client->full_name . ' is CUT (disconnected).');
+        }
+
         $to = $this->formatPhoneNumber($client->contact_number);
         $message = $request->title . " - " . $request->body;
 
-       $response = $this->sms->sendSMS($to, $message);
+        $response = $this->sms->sendSMS($to, $message);
 
         switch ($response['status']) {
             case 'sent':

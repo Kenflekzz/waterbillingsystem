@@ -151,6 +151,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/billings/{clientId}/penalty', [BillingController::class, 'getPenalty']);
 
     Route::get('/totals/total_subscribers', [TotalSubscribersController::class, 'index'])->name('total_subscribers');
+    Route::get('/subscribers/print', [TotalSubscribersController::class, 'print'])->name('print_subscribers');
     Route::get('/totals/total_unpaid', [TotalUnpaidController::class, 'index'])->name('total_unpaid');
     Route::get('/unpaid-consumers', [TotalUnpaidController::class, 'unpaidConsumers'])->name('unpaid_consumers');
     Route::get('/unpaid-consumers/print', [TotalUnpaidController::class, 'printUnpaidConsumers'])->name('print_unpaid_consumers');
