@@ -44,23 +44,35 @@ public function store(Request $request)
     $validated['maintenance_cost'] = $validated['maintenance_cost'] ?? 0;
     $validated['installation_fee'] = $validated['installation_fee'] ?? 0;
 
-    // 1️⃣ Calculate water charge (tier table)
+    /*
+    |--------------------------------------------------------------------------
+    | 1️⃣ Calculate Water Charge
+    |--------------------------------------------------------------------------
+    */
+
     $cubicMetres = max(0, $validated['present_reading'] - $validated['previous_reading']);
     $waterCharge = 0;
     $remaining   = $cubicMetres;
 
     if ($remaining > 0) {
-        $waterCharge += 150; $remaining -= 10;
-        if ($remaining > 0) { $step = min(10, $remaining); $waterCharge += $step*16; $remaining -= $step; }
-        if ($remaining > 0) { $step = min(10, $remaining); $waterCharge += $step*19; $remaining -= $step; }
-        if ($remaining > 0) { $step = min(10, $remaining); $waterCharge += $step*23; $remaining -= $step; }
-        if ($remaining > 0) { $step = min(10, $remaining); $waterCharge += $step*26; $remaining -= $step; }
-        if ($remaining > 0) { $waterCharge += $remaining*30; }
+        $waterCharge += 150; 
+        $remaining -= 10;
+
+        if ($remaining > 0) { $step = min(10, $remaining); $waterCharge += $step * 16; $remaining -= $step; }
+        if ($remaining > 0) { $step = min(10, $remaining); $waterCharge += $step * 19; $remaining -= $step; }
+        if ($remaining > 0) { $step = min(10, $remaining); $waterCharge += $step * 23; $remaining -= $step; }
+        if ($remaining > 0) { $step = min(10, $remaining); $waterCharge += $step * 26; $remaining -= $step; }
+        if ($remaining > 0) { $waterCharge += $remaining * 30; }
     } else {
         $waterCharge = 150;
     }
 
-    // 2️⃣ Correct arrears logic
+    /*
+    |--------------------------------------------------------------------------
+    | 2️⃣ Calculate Arrears & Penalty
+    |--------------------------------------------------------------------------
+    */
+
     $billingDate = Carbon::parse($validated['billing_date']);
     $arrears = 0;
     $penalty = 0;
@@ -71,9 +83,10 @@ public function store(Request $request)
         ->first();
 
     if ($previous) {
-        $status = strtolower($previous->status);
+
+        $status = strtolower($previous->status ?? '');
         $ptype  = strtolower($previous->payment_type ?? '');
-        $currentBill = floatval($previous->current_bill);
+        $currentBill = floatval($previous->current_bill ?? 0);
         $paidAmount  = floatval($previous->partial_payment_amount ?? 0);
         $prevArrears = floatval($previous->arrears ?? 0);
 
@@ -88,22 +101,41 @@ public function store(Request $request)
         if ($arrears > 0) {
             $dueDate = Carbon::parse($previous->billing_month)->addDays(14);
             $daysLate = $dueDate->diffInDays($billingDate, false);
+
             if ($daysLate > 0) {
                 $penalty = round($arrears * 0.005 * $daysLate, 2);
             }
         }
     }
 
-    // 3️⃣ Final bill
-    $totalAmount = $waterCharge + $arrears + $penalty + $validated['maintenance_cost'] + $validated['installation_fee'];
+    /*
+    |--------------------------------------------------------------------------
+    | 3️⃣ Final Amount
+    |--------------------------------------------------------------------------
+    */
 
-    // 4️⃣ Generate per-client billing_id
+    $totalAmount = $waterCharge + $arrears + $penalty
+        + $validated['maintenance_cost']
+        + $validated['installation_fee'];
+
+    /*
+    |--------------------------------------------------------------------------
+    | 4️⃣ Generate Per-Client Billing ID
+    |--------------------------------------------------------------------------
+    */
+
     $lastClientBilling = Billings::where('client_id', $validated['client_id'])
         ->orderBy('billing_id', 'desc')
         ->first();
+
     $billingId = $lastClientBilling ? ($lastClientBilling->billing_id + 1) : 1;
 
-    // 5️⃣ Save billing
+    /*
+    |--------------------------------------------------------------------------
+    | 5️⃣ Save Billing
+    |--------------------------------------------------------------------------
+    */
+
     $billing = Billings::create([
         ...$validated,
         'billing_id'    => $billingId,
@@ -113,12 +145,20 @@ public function store(Request $request)
         'consumed'      => $cubicMetres,
     ]);
 
+    /*
+    |--------------------------------------------------------------------------
+    | 6️⃣ Create UserBilling (if user exists)
+    |--------------------------------------------------------------------------
+    */
+
     $client = Clients::find($validated['client_id']);
+    $userBilling = null;
+
     if ($client && $client->user_id) {
-        // Create UserBilling
+
         $userBilling = UserBilling::create([
             'user_id'      => $client->user_id,
-            'bill_number'  => "C{$client->id}-BILL-{$billingId}", // per-client billing number
+            'bill_number'  => "C{$client->id}-BILL-{$billingId}",
             'billing_date' => $billing->billing_date,
             'due_date'     => $billing->due_date,
             'amount_due'   => $totalAmount,
@@ -129,35 +169,38 @@ public function store(Request $request)
             'status'       => 'unpaid',
         ]);
 
-        // Create matching payment row
-        Payments::create([
-            'client_id'       => $client->id,
-            'user_billing_id' => $userBilling->id,
-            'billing_month'   => $billing->billing_date,
-            'current_bill'    => $waterCharge,
-            'arrears'         => $arrears,
-            'penalty'         => $penalty,
-            'total_amount'    => $totalAmount,
-            'partial_payment_amount' => 0,
-            'payment_type'    => 'N/A',
-            'status'          => 'unpaid',
-        ]);
-
-        // Notification
         Notification::create([
-            'user_id' => $client->id,
-            'type' => 'billing',
+            'user_id'    => $client->user_id,
+            'type'       => 'billing',
             'related_id' => $billing->id,
-            'title' => "New Billing Issued: #{$billingId}",
-            'message' => "A new billing statement (Bill #{$billingId}) has been issued to your account."
+            'title'      => "New Billing Issued: #{$billingId}",
+            'message'    => "A new billing statement (Bill #{$billingId}) has been issued to your account."
         ]);
     }
 
-    UserBilling::where('user_id', $client->user_id)->update(['updated_at' => now()]);
+    /*
+    |--------------------------------------------------------------------------
+    | 7️⃣ ALWAYS Create Payment Record
+    |--------------------------------------------------------------------------
+    */
+
+    Payments::create([
+        'client_id'       => $client->id,
+        'user_billing_id' => $userBilling->id ?? null,
+        'billing_month'   => $billing->billing_date,
+        'current_bill'    => $waterCharge,
+        'arrears'         => $arrears,
+        'penalty'         => $penalty,
+        'total_amount'    => $totalAmount,
+        'partial_payment_amount' => 0,
+        'payment_type'    => 'N/A',
+        'status'          => 'unpaid',
+    ]);
 
     return redirect()->route('admin.billings.index')
         ->with('success', 'Billing and payment record created successfully.');
 }
+
 
     public function show(string $id)
     {
