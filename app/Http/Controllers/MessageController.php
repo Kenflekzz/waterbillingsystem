@@ -47,7 +47,7 @@ class MessageController extends Controller
     }
 
     /**
-     * Send a message to all clients
+     * Send a message to all clients (excluding CUT clients)
      */
     public function sendGeneral(Request $request)
     {
@@ -56,8 +56,9 @@ class MessageController extends Controller
             'body'  => 'required|string',
         ]);
 
-        $clients = Clients::all();
-        $failed  = [];
+        // Exclude clients with status CUT
+        $clients = Clients::where('status', '!=', 'CUT')->get();
+        $failed = [];
 
         foreach ($clients as $client) {
             if (empty($client->contact_number)) continue;
@@ -76,7 +77,11 @@ class MessageController extends Controller
 
             // Send SMS via SmsService
             $response = $this->sms->sendSMS($to, $message);
-            Log::info("SMS attempt", ['to' => $to, 'client_id' => $client->id, 'response' => $response]);
+            Log::info("SMS attempt", [
+                'to' => $to,
+                'client_id' => $client->id,
+                'response' => $response
+            ]);
 
             if (($response['status'] ?? '') !== 'sent') {
                 $failed[] = $client->full_name;
@@ -102,6 +107,12 @@ class MessageController extends Controller
         ]);
 
         $client = Clients::findOrFail($request->client_id);
+
+        // Block if client is CUT
+        if ($client->status === 'CUT') {
+            return back()->with('error', 'Cannot send: Client ' . $client->full_name . ' is CUT (disconnected).');
+        }
+
         $to = $this->formatPhoneNumber($client->contact_number);
 
         if (!$to) {

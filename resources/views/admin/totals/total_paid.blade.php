@@ -34,7 +34,6 @@
         <select name="status" id="status" class="form-select d-inline-block w-auto me-2">
             <option value="">-- All --</option>
             <option value="paid" {{ request('status') == 'paid' ? 'selected' : '' }}>Paid</option>
-            <option value="unpaid" {{ request('status') == 'unpaid' ? 'selected' : '' }}>Unpaid</option>
             <option value="partial" {{ request('status') == 'partial' ? 'selected' : '' }}>Partial</option>
             <option value="gcash" {{ request('status') == 'gcash' ? 'selected' : '' }}>Paid via GCash</option>
         </select>

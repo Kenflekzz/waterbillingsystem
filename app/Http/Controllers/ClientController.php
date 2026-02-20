@@ -35,46 +35,59 @@ class ClientController extends Controller
 
     // Store a newly created resource in storage.
     public function store(Request $request)
-    {   
-        try {
-            $validated = $request->validate([
-                'full_name' => 'required|string|max:255',
-                'meter_no' => 'required|string|max:255|unique:clients',
-                'group' => 'required|string|max:255',
-                'barangay' => 'required|string|max:255',
-                'purok' => 'required|string|max:255',
-                'contact_number' => 'required|string|max:11',
-                'installation_date' => 'nullable|date',
-                'date_cut' => 'nullable|date',
-                'meter_status'     => 'nullable|in:old,replacement',
-                'replacement_date' => 'nullable|date',
-                'meter_series' => 'required|string|max:255',
-            ], [
-                'meter_no.unique' => 'The meter number has already been taken.',
-                'full_name.required' => 'The full name field is required.',
-            ]);
+{   
+    try {
+        $validated = $request->validate([
+            'full_name' => 'required|string|max:255',
+            'meter_no' => 'required|string|max:255|unique:clients',
+            'group' => 'required|string|max:255',
+            'barangay' => 'required|string|max:255',
+            'purok' => 'required|string|max:255',
+            'contact_number' => 'required|string|max:11|unique:clients,contact_number',
+            'installation_date' => 'nullable|date',
+            'date_cut' => 'nullable|date',
+            'meter_status'     => 'nullable|in:old,replacement',
+            'replacement_date' => 'nullable|date',
+            'meter_series' => 'required|string|max:255',
+        ], [
+            'meter_no.unique' => 'The meter number has already been taken.',
+            'contact_number.unique' => 'This contact number is already registered.',
+            'full_name.required' => 'The full name field is required.',
+        ]);
 
-            // Set old_meter_no as null for new clients
-            $validated['old_meter_no'] = null;
+        $validated['old_meter_no'] = null;
+        Clients::create($validated);
 
-            Clients::create($validated);
-
-            return redirect()->route('admin.clients.index')->with('success', 'Client created successfully.');
-            
-        } catch (ValidationException $e) {
+        return redirect()->route('admin.clients.index')->with('success', 'Client created successfully.');
+        
+    } catch (ValidationException $e) {
+        return redirect()->back()
+            ->withErrors($e->validator)
+            ->withInput();
+    } catch (QueryException $e) {
+        // Check for unique constraint violations
+        if (str_contains($e->getMessage(), 'clients_contact_number_unique')) {
             return redirect()->back()
-                ->withErrors($e->validator)
-                ->withInput();
-        } catch (QueryException $e) {
-            return redirect()->back()
-                ->with('error', 'Database error: ' . $this->getFriendlyErrorMessage($e))
-                ->withInput();
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'An unexpected error occurred. Please try again.')
+                ->with('duplicate_contact', $request->contact_number)
                 ->withInput();
         }
+        
+        if (str_contains($e->getMessage(), 'clients_meter_no_unique')) {
+            return redirect()->back()
+                ->with('duplicate_meter', $request->meter_no)
+                ->withInput();
+        }
+
+        // Other database errors - mark as add_client_error
+        return redirect()->back()
+            ->with('add_client_error', $this->getFriendlyErrorMessage($e))
+            ->withInput();
+    } catch (\Exception $e) {
+        return redirect()->back()
+            ->with('add_client_error', 'An unexpected error occurred. Please try again.')
+            ->withInput();
     }
+}
 
     // Display the specified resource.
     public function show(Clients $client)

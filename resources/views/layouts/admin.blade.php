@@ -31,6 +31,17 @@
     }
     </style>
 
+    {{-- Session Data for JavaScript --}}
+    <div id="session-data" 
+        data-success="{{ session('success') ? 'true' : 'false' }}"
+        data-success-message="{{ session('success') ?? '' }}"
+        data-error="{{ session('error') && !session('duplicate_contact') && !session('duplicate_meter') ? 'true' : 'false' }}"
+        data-error-message="{{ session('error') ?? '' }}"
+        data-show-add-modal="{{ session('duplicate_contact') || session('duplicate_meter') || ($errors->any() && !old('_method')) ? 'true' : 'false' }}"
+        data-show-edit-modal="{{ $errors->any() && old('_method') == 'PUT' ? old('client_id') : '' }}"
+        style="display: none;">
+    </div>
+
     @include('admin.partials.adminnavbar')
 
     <div id="layoutSidenav">
