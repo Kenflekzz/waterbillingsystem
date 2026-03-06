@@ -17,10 +17,15 @@ class MessageController extends Controller
         $this->sms = $sms;
     }
 
+    /**
+     * Format phone number to +639XXXXXXXXX
+     */
     private function formatPhoneNumber($number): ?string
     {
+        // Remove all non-digit characters
         $n = preg_replace('/\D+/', '', $number);
 
+        // Convert 09XXXXXXXXX or 9XXXXXXXXX to 639XXXXXXXXX
         if (strlen($n) === 10 && Str::startsWith($n, '9')) {
             $n = '63' . $n;
         }
@@ -28,36 +33,57 @@ class MessageController extends Controller
             $n = '63' . substr($n, 1);
         }
 
-        return strlen($n) === 12 ? $n : null;
+        // Return number with '+' if valid
+        return strlen($n) === 12 ? '+' . $n : null;
     }
 
-    // 📩 Send to all clients (EXCEPT CUT)
+    /**
+     * Show all clients to send messages
+     */
+    public function index()
+    {
+        $clients = Clients::all();
+        return view('admin.messages', compact('clients'));
+    }
+
+    /**
+     * Send a message to all clients (excluding CUT clients)
+     */
     public function sendGeneral(Request $request)
     {
         $request->validate([
             'title' => 'required|string',
-            'body' => 'required|string',
+            'body'  => 'required|string',
         ]);
 
-        // 🔴 FIX: Exclude CUT status clients
+        // Exclude clients with status CUT
         $clients = Clients::where('status', '!=', 'CUT')->get();
         $failed = [];
 
         foreach ($clients as $client) {
-            if (!empty($client->contact_number)) {
-                $to = $this->formatPhoneNumber($client->contact_number);
-                if ($to === null) {
-                    Log::warning("Bad number skipped", ['client' => $client->id, 'raw' => $client->contact_number]);
-                    continue;
-                }
-                $message = $request->title . " - " . $request->body;
+            if (empty($client->contact_number)) continue;
 
-                $response = $this->sms->sendSMS($to, $message);
-                Log::info("Sending SMS to {$to} with message: {$message}");
+            $to = $this->formatPhoneNumber($client->contact_number);
+            if (!$to) {
+                Log::warning("Skipped client with invalid number", [
+                    'client_id' => $client->id,
+                    'raw'       => $client->contact_number
+                ]);
+                $failed[] = $client->full_name;
+                continue;
+            }
 
-                if ($response['status'] !== 'sent') {
-                    $failed[] = $client->full_name;
-                }
+            $message = $request->title . " - " . $request->body;
+
+            $response = $this->sms->sendSMS($to, $message);
+            Log::info("SMS attempt", [
+                'to'        => $to,
+                'client_id' => $client->id,
+                'response'  => $response
+            ]);
+
+            if (($response['status'] ?? '') !== 'sent') {
+                $failed[] = $client->full_name;
             }
         }
 
@@ -68,40 +94,47 @@ class MessageController extends Controller
         return back()->with('success', 'General message sent successfully!');
     }
 
-    // 📨 Send to a specific client (check CUT status)
+    /**
+     * Send a message to a specific client
+     */
     public function sendPersonal(Request $request)
     {
         $request->validate([
             'client_id' => 'required|exists:clients,id',
-            'title' => 'required|string',
-            'body' => 'required|string',
+            'title'     => 'required|string',
+            'body'      => 'required|string',
         ]);
 
         $client = Clients::findOrFail($request->client_id);
 
-        // 🔴 FIX: Block if CUT status
+        // Block if client is CUT
         if ($client->status === 'CUT') {
             return back()->with('error', 'Cannot send: Client ' . $client->full_name . ' is CUT (disconnected).');
         }
 
         $to = $this->formatPhoneNumber($client->contact_number);
+
+        if (!$to) {
+            Log::warning("Invalid client number", [
+                'client_id' => $client->id,
+                'raw'       => $client->contact_number
+            ]);
+            return back()->with('error', 'Invalid phone number for client ' . $client->full_name);
+        }
+
         $message = $request->title . " - " . $request->body;
 
         $response = $this->sms->sendSMS($to, $message);
+        Log::info("SMS attempt", ['to' => $to, 'client_id' => $client->id, 'response' => $response]);
 
-        switch ($response['status']) {
+        switch ($response['status'] ?? '') {
             case 'sent':
                 return back()->with('success', 'Message delivered to ' . $client->full_name);
             case 'pending':
-                return back()->with('info', 'Message queued (pending) – ID: ' . $response['id']);
+                return back()->with('info', 'Message queued (pending) – ID: ' . ($response['id'] ?? 'N/A'));
             default:
-                return back()->with('error', 'Failed to send message: ' . ($response['error'] ?? 'Unknown'));
+                $errorMsg = $response['error'] ?? 'Unknown Mocean error';
+                return back()->with('error', "Failed to send message: {$errorMsg}");
         }
-    }
-
-    public function index()
-    {
-        $clients = Clients::all();
-        return view('admin.messages', compact('clients'));
     }
 }
