@@ -56,6 +56,12 @@
                     Admin/s
                 </a>
             </div>
+            <!-- IoT Flow Meter -->
+                <a class="nav-link {{ Request::is('admin/flowmeter*') ? 'active' : '' }}"
+                href="{{ url('admin/flowmeter') }}">
+                    <div class="sb-nav-link-icon"><i class="fas fa-water"></i></div>
+                    Flow Meter
+                </a>
         </div>
 
         <!-- Footer -->

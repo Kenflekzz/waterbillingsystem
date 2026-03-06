@@ -30,7 +30,9 @@ export default defineConfig({
                     'resources/css/reports.css',
                     'resources/css/user-billing.css',
                     'resources/css/usernavbar.css',
-                    'resources/js/billings.js'
+                    'resources/js/billings.js',
+                    'resources/css/user_receipt.css',
+                    'resources/js/flowmeter.js'
                     ],
             refresh: true,
         }),

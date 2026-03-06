@@ -6,9 +6,6 @@
             <p><strong>SPECIAL REVENUE UNIT</strong></p>
             <p>Caravallo Street, Brgy. Poblacion, Magallanes, Agusan Del Norte<br>Telephone #: 8060269</p>
         </div>
-        <div class="right">
-            <img src="{{ asset('/images/TREE_LOGO.png') }}">
-        </div>
     </div>
 
     <div class="bill-title">BILL STATEMENT</div>
@@ -47,6 +44,7 @@
         </tr>
     </table>
 
+    <!-- MAIN BILLING TABLE (without excess hose) -->
     <table>
         <tr>
             <td><strong>CURRENT BILLING</strong></td>
@@ -68,21 +66,19 @@
             <td><strong>INSTALLATION COST</strong></td>
             <td class="right-align">₱{{ number_format($billing->installation_fee,2) }}</td>
         </tr>
-        <tr>
-            <td><strong>EXCESS HOSE</strong></td>
-            <td class="right-align">₱0.00</td>
-        </tr>
-        <tr>
-            <td><strong>RECONNECTION FEE</strong></td>
-            <td class="right-align">
-                {{ $reconnectionFee > 0 ? '₱' . number_format($reconnectionFee, 2) : '₱0.00' }}
-            </td>
-        </tr>
         <tr class="highlight">
             <td class="highlight">TOTAL AMOUNT DUE</td>
             <td class="right-align">
                 <strong>₱{{ number_format($totalAmount,2) }}</strong>
             </td>
+        </tr>
+    </table>
+
+    <!-- SEPARATE EXCESS HOSE SECTION (not included in total) -->
+    <table class="excess-hose-table">
+        <tr>
+            <td><strong>EXCESS HOSE</strong></td>
+            <td class="right-align">₱{{ number_format($billing->excess_hose ?? 0, 2) }}</td>
         </tr>
     </table>
 
@@ -93,38 +89,43 @@
         </tr>
         @foreach($arrearsBreakdown as $item)
             <tr>
-                <td>{{ \Carbon\Carbon::parse($item['billing_month'])->format('F Y') }}</td>
+                <td>{{ \Carbon\Carbon::parse($item['billing_month'])->format('M d, Y') }}</td>
                 <td class="right-align">₱{{ number_format($item['current_bill'],2) }}</td>
             </tr>
         @endforeach
     </table>
     @endif
 
-    @if(!empty($penaltyBreakdown))
-    <table>
+    <!-- PENALTY BREAKDOWN - FIXED DISPLAY -->
+    @if(isset($penaltyBreakdown) && count($penaltyBreakdown) > 0)
+    <table style="border: 2px solid #000; margin-top: 10px; width: 100%; border-collapse: collapse;">
         <tr class="section-title">
-            <td colspan="4">Breakdown of Penalty</td>
+            <td colspan="4" style="background-color: #f4c6c6; font-weight: bold; text-align: center; border: 1px solid #000; padding: 4px;">Breakdown of Penalty</td>
         </tr>
+        <tr style="background-color: #eee;">
+            <th style="border: 1px solid #000; padding: 4px;">Billing Month</th>
+            <th style="border: 1px solid #000; padding: 4px;">Due Date</th>
+            <th style="border: 1px solid #000; padding: 4px;">Days Late</th>
+            <th style="border: 1px solid #000; padding: 4px;" class="right-align">Partial Penalty (₱)</th>
+        </tr>
+        @foreach($penaltyBreakdown as $index => $item)
         <tr>
-            <th>Billing Month</th>
-            <th>Due Date</th>
-            <th>Days Late</th>
-            <th class="right-align">Partial Penalty (₱)</th>
+            <td style="border: 1px solid #000; padding: 4px;">{{ \Carbon\Carbon::parse($item['billing_month'])->format('M d, Y') }}</td>
+            <td style="border: 1px solid #000; padding: 4px;">{{ \Carbon\Carbon::parse($item['due_date'])->format('M d, Y') }}</td>
+            <td style="border: 1px solid #000; padding: 4px; text-align: center;">{{ $item['days_late'] }}</td>
+            <td style="border: 1px solid #000; padding: 4px;" class="right-align">₱{{ number_format($item['partial_penalty'], 2) }}</td>
         </tr>
-        @foreach($penaltyBreakdown as $item)
-            <tr>
-                <td>{{ \Carbon\Carbon::parse($item['billing_month'])->format('F Y') }}</td>
-                <td>{{ \Carbon\Carbon::parse($item['due_date'])->format('M d, Y') }}</td>
-                <td>{{ $item['days_late'] }}</td>
-                <td class="right-align">₱{{ number_format($item['partial_penalty'],2) }}</td>
-            </tr>
         @endforeach
+        <tr style="font-weight: bold; background-color: #f9f9f9;">
+            <td colspan="3" style="border: 1px solid #000; padding: 4px; text-align: right;">Total Penalty:</td>
+            <td style="border: 1px solid #000; padding: 4px;" class="right-align">₱{{ number_format($penalty, 2) }}</td>
+        </tr>
     </table>
     @endif
 
     <div class="note-section">
         <p><strong>1.</strong> Two (2) Consecutive UNPAID Billings follow the <span class="highlight">DISCONNECTION</span>.</p>
-        <p><strong>2.</strong> This account must be settled on or before: <strong>{{ \Carbon\Carbon::parse($billing->billing_date)->addDays(14)->format('M d, Y') }}</strong> to avoid penalty charges.</p>
+        <p><strong>2.</strong> This account must be settled on or before: <strong>{{ \Carbon\Carbon::parse($billing->due_date)->format('M d, Y') }}</strong> to avoid penalty charges.</p>
         <p><strong>3.</strong> Water service will be disconnected without prior notice.</p>
     </div>
 

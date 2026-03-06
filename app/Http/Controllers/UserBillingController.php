@@ -15,6 +15,8 @@ use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Writer;
 use App\Models\ProblemReport;
 use App\Models\Users;
+
+// FIXED: Import the Facade correctly - use 'Pdf' not 'PDF'
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class UserBillingController extends Controller
@@ -383,6 +385,7 @@ class UserBillingController extends Controller
             'billing' => $billing,
             'user'    => $billing->user,
             'date'    => now()->format('F d, Y'),
+            'isPdf'   => false,
         ]);
     }
 
@@ -391,13 +394,33 @@ class UserBillingController extends Controller
         $payment = Payments::with('userBilling.user')->findOrFail($paymentId);
         $billing = $payment->userBilling;
 
-        $pdf = PDF::loadView('user.user_receipt', [
+        // CRITICAL FIX: Use inline CSS in the Blade template, not external file
+        // DomPDF cannot process external CSS files properly
+        
+        $pdf = Pdf::loadView('user.user_receipt', [
             'payment' => $payment,
             'billing' => $billing,
             'user'    => $billing->user,
             'date'    => now()->format('F d, Y'),
         ]);
 
-        return $pdf->download('Receipt_' . $payment->id . '.pdf');
+        // CRITICAL FIX: Use explicit fixed height instead of 0
+        // 80mm width = 226.77 points
+        // Height: 350pt fits a standard receipt (adjust if content is cut off)
+        $pdf->setPaper([0, 0, 226.77, 350], 'portrait');
+        
+        // CRITICAL FIX: Set DomPDF options to prevent blank pages
+        $pdf->setOptions([
+            'defaultFont' => 'courier',
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled' => true,
+            'isPhpEnabled' => false,
+            'dpi' => 96,
+            'defaultMediaType' => 'print',
+        ]);
+
+        $filename = 'Receipt_' . str_pad($payment->id, 6, '0', STR_PAD_LEFT) . '.pdf';
+
+        return $pdf->download($filename);
     }
 }

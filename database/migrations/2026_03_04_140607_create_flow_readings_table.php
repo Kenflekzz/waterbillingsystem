@@ -9,20 +9,21 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-        Schema::table('clients', function (Blueprint $table) {
-            $table->boolean('is_disconnect_seen')->default(false)->after('status');
-        });
-    }
-
+    
+    public function up()
+{
+    Schema::create('flow_readings', function (Blueprint $table) {
+        $table->id();
+        $table->decimal('flow_rate', 8, 2);
+        $table->decimal('total_volume', 8, 2);
+        $table->timestamps();
+    });
+}
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::table('clients', function (Blueprint $table) {
-            //
-        });
+        Schema::dropIfExists('flow_readings');
     }
 };

@@ -27,6 +27,8 @@ use App\Http\Controllers\UserNotificationController;
 use App\Http\Controllers\ConsumptionController;
 use App\Http\Controllers\DisconnectPendingController;
 use App\Http\Controllers\ConsumptionReportController;
+use App\Http\Controllers\FlowReadingController;
+use App\Http\Controllers\IotDeviceController;
 // --------------------
 // Home Route
 // --------------------
@@ -128,9 +130,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('password/reset',  [AdminAuthController::class, 'resetWithOtp']);
 
     Route::get('/reset-password', function () {
-            return view('admin.adminlogin'); 
-        })->name('reset-password');
-
+        return view('admin.adminlogin'); 
+    })->name('reset-password');
 
     Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [AdminAuthController::class, 'dashboard'])->middleware('auth:admin')->name('dashboard');
@@ -141,14 +142,29 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/clients', [AdminAuthController::class, 'clients'])->middleware('auth:admin')->name('clients');
 
     Route::resource('clients', ClientController::class);
+
+    // ✅ All custom billing routes BEFORE the resource
     Route::get('/billings/next-id', [BillingController::class, 'nextId'])->name('billings.next-id');
-
-    Route::resource('billings', BillingController::class);
-    Route::resource('payments', PaymentController::class);
-
+    Route::get('/billings/latest/{clientId}', [BillingController::class, 'getLatestBilling'])->name('billings.latest');
     Route::get('/billings/{id}/print', [BillingController::class, 'print'])->name('billings.print');
     Route::get('/billings/{clientId}/arrears', [BillingController::class, 'getClientArrears']);
     Route::get('/billings/{clientId}/penalty', [BillingController::class, 'getPenalty']);
+    Route::get('/billings/{clientId}/previous-current', [BillingController::class, 'getPreviousCurrentBill']);
+    // IoT Flow Meter
+    Route::get('/flowmeter', [IotDeviceController::class, 'index'])->name('flowmeter')->middleware('auth:admin');
+    Route::get('/flowmeter/devices', [IotDeviceController::class, 'getDevices'])->name('flowmeter.devices');
+    Route::post('/flowmeter/devices', [IotDeviceController::class, 'store'])->name('flowmeter.store');
+    Route::post('/flowmeter/devices/{deviceId}/assign', [IotDeviceController::class, 'assign'])->name('flowmeter.assign');
+    Route::delete('/flowmeter/devices/{deviceId}', [IotDeviceController::class, 'destroy'])->name('flowmeter.destroy');
+
+// Flow Readings
+Route::post('/flow-readings', [FlowReadingController::class, 'store'])->name('flow.store');
+Route::get('/flow-readings/latest/{deviceId}', [FlowReadingController::class, 'latest'])->name('flow.latest');
+
+    // ✅ Resource route AFTER all custom billing routes
+    Route::resource('billings', BillingController::class);
+
+    Route::resource('payments', PaymentController::class);
 
     Route::get('/totals/total_subscribers', [TotalSubscribersController::class, 'index'])->name('total_subscribers');
     Route::get('/subscribers/print', [TotalSubscribersController::class, 'print'])->name('print_subscribers');
@@ -169,12 +185,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::put('/homepage/update', [HomepageController::class, 'update'])->name('homepage.update');
 
     Route::get('/messages', [MessageController::class, 'index'])->name('messages');
-
-    // General and personal messages
     Route::post('/messages/general', [MessageController::class, 'sendGeneral'])->name('messages.sendGeneral');
     Route::post('/messages/personal', [MessageController::class, 'sendPersonal'])->name('messages.sendPersonal');
-
-    // Optional: redirect GET requests to avoid the 405 error
     Route::get('/messages/general', function() {
         return redirect()->route('admin.messages');
     });
@@ -188,34 +200,19 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::get('/activity_log', [ActivityLogController::class, 'activityLog'])->name('activity.log');
 
-    Route::get('/billings/{clientId}/previous-current', [BillingController::class, 'getPreviousCurrentBill']);
-
-
-
-    Route::get('/user-reports', [AdminReportController::class, 'index'])
-        ->name('reports');
-
-    Route::post('/reports/update/{id}', [AdminReportController::class, 'updateStatus'])
-        ->name('reports.update');
+    Route::get('/user-reports', [AdminReportController::class, 'index'])->name('reports');
+    Route::post('/reports/update/{id}', [AdminReportController::class, 'updateStatus'])->name('reports.update');
     
     Route::post('/set-demo-consumer', [BehaviorController::class, 'setDemoConsumer']);
-
-    // routes/web.php  (or api.php if you prefer)
     Route::post('/set-demo-consumer/{id}', function ($id) {
         session(['demo_consumer' => $id]);
         return response()->noContent();
     });
 
-    Route::get('/disconnect-pending', [DisconnectPendingController::class, 'index'])
-     ->name('disconnect.pending');
-
-    Route::post('disconnect/mark', [DisconnectPendingController::class, 'mark'])
-     ->name('disconnect.mark');
+    Route::get('/disconnect-pending', [DisconnectPendingController::class, 'index'])->name('disconnect.pending');
+    Route::post('disconnect/mark', [DisconnectPendingController::class, 'mark'])->name('disconnect.mark');
 
     Route::get('/consumption_report', [ConsumptionReportController::class, 'index'])->name('consumption-report');
-
-
-
 });
 
 // --------------------

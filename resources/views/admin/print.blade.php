@@ -1,4 +1,3 @@
-<link rel="icon" href="{{ asset($homepage->favicon ?? 'images/MAGALLANES_LOGO.png') }}" type="image/x-icon">
 <!DOCTYPE html>
 <html>
 <head>
@@ -8,28 +7,33 @@
 </head>
 <body onload="window.print()">
 
-    @include('admin._bill_copy', [
-        'billing' => $billing,
-        'arrears' => $arrears,
-        'penalty' => $penalty,
-        'arrearsBreakdown' => $arrearsBreakdown,
-        'penaltyBreakdown' => $penaltyBreakdown,
-        'reconnectionFee' => $reconnectionFee,
-        'totalAmount' => $billing->current_bill + $arrears + $penalty + $billing->maintenance_cost + $billing->installation_fee + $reconnectionFee,
-        'copyLabel' => "ADMIN'S COPY"
-    ])
+    <div class="print-wrapper">
+        <!-- Admin Copy -->
+        <div class="bill-wrapper">
+            @include('admin._bill_copy', [
+                'billing' => $billing,
+                'arrears' => $arrears,
+                'penalty' => $penalty,
+                'arrearsBreakdown' => $arrearsBreakdown,
+                'penaltyBreakdown' => $penaltyBreakdown,
+                'totalAmount' => $billing->current_bill + $arrears + $penalty + $billing->maintenance_cost + $billing->installation_fee,
+                'copyLabel' => "ADMIN'S COPY"
+            ])
+        </div>
 
-
-    @include('admin._bill_copy', [
-        'billing' => $billing,
-        'arrears' => $arrears,
-        'penalty' => $penalty,
-        'arrearsBreakdown' => $arrearsBreakdown,
-        'penaltyBreakdown' => $penaltyBreakdown,
-        'reconnectionFee' => $reconnectionFee,
-        'totalAmount' => $billing->current_bill + $arrears + $penalty + $billing->maintenance_cost + $billing->installation_fee + $reconnectionFee,
-        'copyLabel' => "CONSUMER'S COPY"
-    ])
+        <!-- Consumer Copy -->
+        <div class="bill-wrapper">
+            @include('admin._bill_copy', [
+                'billing' => $billing,
+                'arrears' => $arrears,
+                'penalty' => $penalty,
+                'arrearsBreakdown' => $arrearsBreakdown,
+                'penaltyBreakdown' => $penaltyBreakdown,
+                'totalAmount' => $billing->current_bill + $arrears + $penalty + $billing->maintenance_cost + $billing->installation_fee,
+                'copyLabel' => "CONSUMER'S COPY"
+            ])
+        </div>
+    </div>
 
 </body>
 </html>

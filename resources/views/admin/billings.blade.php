@@ -270,12 +270,11 @@
     <!-- DataTables Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js"></script>
     <script src="{{ asset('admin/js/datatables-simple-demo.js') }}"></script>
-    <input type="hidden" id="hasSuccess" value="{{ session('success') ? '1' : '0' }}">
+    <input type="hidden" id="hasSuccess" value="{{ !$errors->any() && session('success') ? '1' : '0' }}">
     <input type="hidden" id="successMessage" value="{{ session('success') }}">
     <input type="hidden" id="hasErrors" value="{{ $errors->any() ? '1' : '0' }}">
     <input type="hidden" id="errorMessages" value="{{ implode(' | ', $errors->all()) }}">
     @vite('resources/js/billings.js')
 @endsection
-
 
 

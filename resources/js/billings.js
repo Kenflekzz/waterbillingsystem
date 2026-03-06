@@ -26,39 +26,69 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Auto-fill client details
     clientSelect?.addEventListener('change', () => {
-        const selected = clientSelect.options[clientSelect.selectedIndex];
-        meterNoInput.value = selected.dataset.meter || '';
-        fullNameInput.value = selected.dataset.fullname || '';
-        barangayInput.value = selected.dataset.barangay || '';
-        purokInput.value = selected.dataset.purok || '';
-        if (billingDateInput.value) fetchArrearsAndPenalty();
-    });
+    const selected = clientSelect.options[clientSelect.selectedIndex];
+    meterNoInput.value  = selected.dataset.meter     || '';
+    fullNameInput.value = selected.dataset.fullname  || '';
+    barangayInput.value = selected.dataset.barangay  || '';
+    purokInput.value    = selected.dataset.purok     || '';
 
-    // Calculate consumed water & current bill
-    function calculateConsumed() {
-        const prev = parseFloat(previousInput.value) || 0;
-        const pres = parseFloat(presentInput.value) || 0;
-        const cubicMetres = Math.max(0, pres - prev);
+    // Reset auto-filled fields first
+    previousInput.value         = '';
+    maintenanceCostInput.value  = '';
 
-        let waterCharge = 0;
-        let rem = cubicMetres;
+    const clientId = clientSelect.value;
+    if (!clientId) return;
 
-        if (rem > 0) {
-            waterCharge += 150; rem -= 10;
-            if (rem > 0) { const step = Math.min(10, rem); waterCharge += step * 16; rem -= step; }
-            if (rem > 0) { const step = Math.min(10, rem); waterCharge += step * 19; rem -= step; }
-            if (rem > 0) { const step = Math.min(10, rem); waterCharge += step * 23; rem -= step; }
-            if (rem > 0) { const step = Math.min(10, rem); waterCharge += step * 26; rem -= step; }
-            if (rem > 0) waterCharge += rem * 30;
+    // Auto-fill previous_reading and maintenance_cost from last billing
+    fetch(`/admin/billings/latest/${clientId}`, { cache: "no-store" })
+        .then(res => res.json())
+        .then(data => {
+            previousInput.value        = data.previous_reading ?? 0;
+            maintenanceCostInput.value = data.maintenance_cost ?? 0;
+            recalculateTotal();
+        })
+        .catch(() => {
+            previousInput.value        = 0;
+            maintenanceCostInput.value = 0;
+        });
+
+    if (billingDateInput.value) fetchArrearsAndPenalty();
+});
+
+    // Calculate consumed water & current bill (WEIRD LOGIC - matches PHP)
+    // Calculate consumed water & current bill (WEIRD LOGIC - FIXED)
+function calculateConsumed() {
+    const prev = parseFloat(previousInput.value) || 0;
+    const pres = parseFloat(presentInput.value) || 0;
+    
+    const cubicMetres = pres - prev;
+    let waterCharge = 0;
+
+    if (cubicMetres <= 10) {
+        waterCharge = 150;
+    } else {
+        const subtractedValue = cubicMetres - 10;
+        let rate = 0;
+
+        if (subtractedValue <= 10) {
+            rate = 16;
+        } else if (subtractedValue <= 20) {
+            rate = 19;
+        } else if (subtractedValue <= 30) {
+            rate = 23;
+        } else if (subtractedValue <= 50) {  // ← FIXED: Changed from 40 to 50
+            rate = 26;
         } else {
-            waterCharge = 150;
+            rate = 30;
         }
 
-        consumedInput.value = cubicMetres;
-        currentBillInput.value = waterCharge.toFixed(2);
-        recalculateTotal();
+        waterCharge = 150 + (subtractedValue * rate);
     }
 
+    consumedInput.value = cubicMetres;
+    currentBillInput.value = waterCharge.toFixed(2);
+    recalculateTotal();
+}
     // Recalculate grand total
     function recalculateTotal() {
         const currentBill = parseFloat(currentBillInput.value) || 0;
@@ -99,7 +129,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Input event listeners
     [previousInput, presentInput].forEach(input => input?.addEventListener('input', calculateConsumed));
-    [maintenanceCostInput, installationFeeInput, consumedInput].forEach(input => input?.addEventListener('input', recalculateTotal));
+    [maintenanceCostInput, installationFeeInput].forEach(input => input?.addEventListener('input', recalculateTotal));
     billingDateInput?.addEventListener('change', () => { if (clientSelect.value) fetchArrearsAndPenalty(); });
 
     // Modal logic
