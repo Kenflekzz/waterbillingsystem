@@ -39,12 +39,13 @@ export default defineConfig({
         vue(),
     ],
     server: {
-        host: process.env.VITE_HOST || 'localhost',
-        port: parseInt(process.env.VITE_PORT) || 5173,
+        host: '0.0.0.0',
+        port: 5173,
         strictPort: true,
+        cors:true,
         hmr: {
-            host: process.env.VITE_HOST || 'localhost',
-            port: parseInt(process.env.VITE_PORT) || 5173,
+            host: '192.168.100.147',
+            port: 5173,
         },
     },
 });
