@@ -131,8 +131,9 @@ export default {
   align-items: center;
   min-height: 80vh;
   background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)),
-              url('/images/1000019384.jpg') no-repeat center center;
+              url('/images/1000019384.jpg') no-repeat center bottom;
   background-size: cover;
+  background-position: center 100%;
 }
 
 .card {

@@ -173,7 +173,7 @@ export default {
   align-items: center;
   min-height: 100vh;
   background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)),
-              url('/images/') no-repeat center center;
+              url('/images/1000019368.jpg') no-repeat center center;
   background-size: cover;
 }
 
