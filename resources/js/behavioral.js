@@ -274,7 +274,7 @@ async function loadData(consumerId = '') {
   };
 
   try {
-    const res = await axios.get('/admin/behavior/data', { params });
+    const res = await axios.get('/admin/flow-readings/chart-data', { params });
     const serverData = res.data || [];
     serverData.forEach(r => {
       const user = r.user_id ?? r.consumer ?? 'unknown';

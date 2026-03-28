@@ -157,9 +157,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/flowmeter/devices/{deviceId}/assign', [IotDeviceController::class, 'assign'])->name('flowmeter.assign');
     Route::delete('/flowmeter/devices/{deviceId}', [IotDeviceController::class, 'destroy'])->name('flowmeter.destroy');
 
-// Flow Readings
-Route::post('/flow-readings', [FlowReadingController::class, 'store'])->name('flow.store');
-Route::get('/flow-readings/latest/{deviceId}', [FlowReadingController::class, 'latest'])->name('flow.latest');
+    // Flow Readings
+    Route::post('/flow-readings', [FlowReadingController::class, 'store'])->name('flow.store');
+    Route::get('/flow-readings/latest/{deviceId}', [FlowReadingController::class, 'latest'])->name('flow.latest');
+
+    Route::get('/flow-readings/chart-data', [FlowReadingController::class, 'chartData'])->name('flow.chart-data');
 
     // ✅ Resource route AFTER all custom billing routes
     Route::resource('billings', BillingController::class);

@@ -48,4 +48,19 @@ class FlowReadingController extends Controller
 
         return response()->json($reading);
     }
+
+    public function chartData(Request $request)
+    {
+        $readings = FlowReading::with('client')
+            ->select('client_id', 'cubic_meter', 'created_at')
+            ->get()
+            ->map(fn($r) => [
+                'user_id'    => $r->client_id,
+                'value'      => $r->cubic_meter,
+                'created_at' => $r->created_at,
+                'barangay'   => $r->client?->barangay,
+            ]);
+
+        return response()->json($readings);
+    }
 }
