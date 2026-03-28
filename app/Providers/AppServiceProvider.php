@@ -15,6 +15,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Auto-detect local network IP and set APP_URL dynamically
+        $ip = $this->getLocalIP();
+        config(['app.url' => 'http://' . $ip . ':8000']);
+
         if (request()->is('admin/*')) {
             Config::set('session.cookie', config('session.admin_cookie', 'laravel_admin_session'));
         }
@@ -50,7 +54,6 @@ class AppServiceProvider extends ServiceProvider
                 ]);
                 
             } catch (\Exception $e) {
-                // Log error but don't break the app
                 \Log::error('View composer error: ' . $e->getMessage());
                 
                 $view->with([
@@ -61,5 +64,32 @@ class AppServiceProvider extends ServiceProvider
                 ]);
             }
         });
-    }   
+    }
+
+    private function getLocalIP(): string
+    {
+        $interfaces = @net_get_interfaces();
+
+        if ($interfaces) {
+            foreach ($interfaces as $interface) {
+                $isUp = $interface['up'] ?? false;
+                $isLoopback = $interface['loopback'] ?? false;
+
+                if (!$isUp || $isLoopback) continue;
+
+                foreach ($interface['unicast'] ?? [] as $unicast) {
+                    $ip = $unicast['address'] ?? '';
+                    if (
+                        str_starts_with($ip, '192.168.') ||  // WiFi / Android hotspot
+                        str_starts_with($ip, '172.20.10.') || // iPhone hotspot
+                        str_starts_with($ip, '10.')           // Some Android hotspots
+                    ) {
+                        return $ip;
+                    }
+                }
+            }
+        }
+
+        return 'localhost'; // fallback when offline
+    }
 }

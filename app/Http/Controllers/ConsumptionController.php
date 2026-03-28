@@ -30,27 +30,38 @@ class ConsumptionController extends Controller
             DB::raw("'sensor' as source")
         )->where('user_id', $consumerId);
 
+        // NEW — real flow meter readings
+        $flowMeter = \App\Models\FlowReading::select(
+            'created_at as date',
+            'cubic_meter as value',
+            DB::raw("'flow_meter' as source")
+        )->where('client_id', $consumerId);
+
         /* ================= FILTERS ================= */
 
         if ($request->year) {
             $billing->whereYear('billing_date', $request->year);
             $sensor->whereYear('created_at', $request->year);
+            $flowMeter->whereYear('created_at', $request->year); // NEW
         }
 
         if ($request->month) {
             $billing->whereMonth('billing_date', $request->month);
             $sensor->whereMonth('created_at', $request->month);
+            $flowMeter->whereMonth('created_at', $request->month); // NEW
         }
 
         if ($request->day) {
             $billing->whereDay('billing_date', $request->day);
             $sensor->whereDay('created_at', $request->day);
+            $flowMeter->whereDay('created_at', $request->day); // NEW
         }
 
-        /* ================= MERGE DATA (NO UNION) ================= */
+        /* ================= MERGE DATA ================= */
 
         $rows = $billing->get()
             ->merge($sensor->get())
+            ->merge($flowMeter->get())   // NEW
             ->sortBy('date')
             ->values();
 

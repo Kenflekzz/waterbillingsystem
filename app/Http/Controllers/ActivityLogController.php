@@ -11,6 +11,8 @@ class ActivityLogController extends Controller
     {
         $query = ActivityLog::with('client');
 
+
+        
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
@@ -20,6 +22,8 @@ class ActivityLogController extends Controller
             ->orWhere('activity', 'like', "%$search%")
             ->orWhere('details', 'like', "%$search%");
         }
+
+        
 
         // Order alphabetically by client full name, then by date descending
         $logs = $query->leftJoin('clients', 'activity_logs.user_id', '=', 'clients.user_id')

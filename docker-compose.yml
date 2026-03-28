@@ -15,7 +15,7 @@ services:
       - .env.docker
     volumes:
       - ./:/var/www
-      - ./storage:/var/www/storage
+      - ./storage:/var/www/storagedd
     networks:
       - laravel
     depends_on:
