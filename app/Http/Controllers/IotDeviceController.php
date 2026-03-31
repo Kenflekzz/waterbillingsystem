@@ -15,9 +15,15 @@ class IotDeviceController extends Controller
         $devices = IotDevice::with('client')->get();
         $clients = Clients::where('status', '!=', 'CUT')->get();
 
-        // Get total cu.m per consumer
-        $consumptions = FlowReading::with('client')
-            ->selectRaw('client_id, iot_device_id, MAX(cubic_meter) as total_cubic_meter')
+        // Get total volume and total cubic meter per consumer per device
+        $consumptions = FlowReading::with(['client', 'iotDevice'])
+            ->selectRaw('
+                client_id,
+                iot_device_id,
+                SUM(total_volume)  as total_volume,
+                SUM(cubic_meter)   as total_cubic_meter,
+                MAX(updated_at)    as updated_at
+            ')
             ->groupBy('client_id', 'iot_device_id')
             ->get();
 
@@ -77,5 +83,30 @@ class IotDeviceController extends Controller
             ]);
 
         return response()->json($devices);
+    }
+
+    public function consumptions()
+    {
+        $consumptions = FlowReading::with(['client', 'iotDevice'])
+            ->selectRaw('
+                client_id,
+                iot_device_id,
+                SUM(total_volume)  as total_volume,
+                SUM(cubic_meter)   as total_cubic_meter,
+                MAX(updated_at)    as updated_at
+            ')
+            ->groupBy('client_id', 'iot_device_id')
+            ->get()
+            ->map(fn($c) => [
+                'device_name'       => $c->iotDevice?->device_name ?? 'N/A',
+                'consumer'          => $c->client?->full_name ?? 'Unassigned',
+                'barangay'          => $c->client?->barangay ?? '--',
+                'purok'             => $c->client?->purok ?? '--',
+                'total_volume'      => $c->total_volume ?? 0,
+                'total_cubic_meter' => $c->total_cubic_meter ?? 0,
+                'updated_at'        => $c->updated_at ?? '--',
+            ]);
+
+        return response()->json($consumptions);
     }
 }

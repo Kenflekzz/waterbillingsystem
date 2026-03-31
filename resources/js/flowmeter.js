@@ -235,4 +235,37 @@ document.addEventListener('DOMContentLoaded', function () {
         Swal.fire({ icon: 'error', title: 'Error', text: document.getElementById('errorMessages').value, confirmButtonColor: '#d33' });
     }
 
+    /* ========================================================
+    LIVE CONSUMPTION TABLE REFRESH
+    ======================================================== */
+    function refreshConsumptionTable() {
+        fetch('/admin/flowmeter/consumptions')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.querySelector('#consumptionTable tbody');
+                if (!tbody) return;
+
+                if (!data.length) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center">No readings yet.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = data.map(row => `
+                    <tr>
+                        <td>${row.device_name ?? 'N/A'}</td>
+                        <td>${row.consumer ?? 'Unassigned'}</td>
+                        <td>${row.barangay ?? '--'}</td>
+                        <td>${row.purok ?? '--'}</td>
+                        <td>${parseFloat(row.total_volume ?? 0).toFixed(2)}</td>
+                        <td><strong>${parseFloat(row.total_cubic_meter ?? 0).toFixed(4)}</strong></td>
+                        <td>${row.updated_at ?? '--'}</td>
+                    </tr>
+                `).join('');
+            })
+            .catch(err => console.error('Failed to refresh table:', err));
+    }
+
+    // Refresh every 5 seconds
+    setInterval(refreshConsumptionTable, 5000);
+
 });

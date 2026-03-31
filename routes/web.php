@@ -156,6 +156,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/flowmeter/devices', [IotDeviceController::class, 'store'])->name('flowmeter.store');
     Route::post('/flowmeter/devices/{deviceId}/assign', [IotDeviceController::class, 'assign'])->name('flowmeter.assign');
     Route::delete('/flowmeter/devices/{deviceId}', [IotDeviceController::class, 'destroy'])->name('flowmeter.destroy');
+    Route::get('/flowmeter/consumptions', [IotDeviceController::class, 'consumptions']);
 
     // Flow Readings
     Route::post('/flow-readings', [FlowReadingController::class, 'store'])->name('flow.store');
