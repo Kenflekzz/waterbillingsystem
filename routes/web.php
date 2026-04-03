@@ -73,7 +73,7 @@ Route::prefix('user')->name('user.')->middleware('web')->group(function () {
         Route::post('/logout', [UsersAuthController::class, 'logout'])->name('logout');
         Route::get('/profile', [Usercontroller::class, 'profile'])->name('profile');
         Route::get('/billing', [UserController::class, 'billing'])->name('billing');
-        Route::get('/billing/{id}/print', [UserController::class, 'printBill'])->name('billing.print');
+        Route::get('/billing/{id}/print', [UserController::class, 'printBill'])->name('billing.print.download');
         Route::post('/billing/{id}/pay', [UserController::class, 'payBill'])->name('billing.pay');
         //Route::get('/consumption', [UserController::class, 'consumption'])->name('consumption');
         Route::post('/billings/{id}/gcash', [UserBillingController::class,'payWithGCash'])->name('billing.gcash');

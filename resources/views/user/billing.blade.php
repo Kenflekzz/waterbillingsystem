@@ -82,7 +82,7 @@
                         @endif
 
                         <div class="d-flex flex-column gap-2">
-                            <a href="{{ route('user.billing.print', $latestBilling->id) }}" class="btn btn-outline-secondary btn-sm">
+                            <a href="{{ route('user.billing.print.download', $latestBilling->id) }}" class="btn btn-outline-secondary btn-sm">
                                 <i class="bi bi-printer"></i> Print Bill
                             </a>
 
