@@ -96,7 +96,7 @@ Route::prefix('user')->name('user.')->middleware('web')->group(function () {
 
         Route::get('/user_receipt/{payment}', [UserBillingController::class, 'generateReceipt'])->name('receipt.view');
         Route::get('/user_receipt/download/{payment}', [UserBillingController::class, 'downloadReceipt'])->name('receipt.download');
-        Route::get('/my-consumption', [ConsumptionController::class, 'index'])->name('consumption');
+        Route::get('/my-consumption', [ConsumptionController::class, 'index'])->name('my.consumption');
 
     });
     

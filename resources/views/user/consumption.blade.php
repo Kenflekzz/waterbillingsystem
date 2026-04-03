@@ -56,7 +56,7 @@
     <div class="col-lg-9">
         <div class="filter-pill-container">
 
-            <form method="GET" action="{{ route('user.consumption') }}" class="d-flex flex-nowrap align-items-center justify-content-center gap-3 filter-row">
+            <form method="GET" action="{{ route('user.my.consumption') }}" class="d-flex flex-nowrap align-items-center justify-content-center gap-3 filter-row">
 
                 {{-- YEAR --}}
                 <select name="year" id="filter-year"
@@ -93,7 +93,7 @@
 
                 {{-- CLEAR --}}
                 @if(request()->anyFilled(['year','month','day']))
-                    <a href="{{ route('user.consumption') }}" class="btn btn-outline-secondary filter-clear">
+                    <a href="{{ route('user.my.consumption') }}" class="btn btn-outline-secondary filter-clear">
                         Clear
                     </a>
                 @endif
