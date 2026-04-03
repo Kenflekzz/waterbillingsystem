@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentDeviceId = null;
     let currentWsUrl    = null;
 
+    const THRESHOLD = 50; // Must match FLOW_THRESHOLD in controller
+
     /* ========================================================
        CHART SETUP
     ======================================================== */
@@ -46,7 +48,33 @@ document.addEventListener('DOMContentLoaded', function () {
             plugins: {
                 legend: { display: true },
             }
-        }
+        },
+        plugins: [{
+            id: 'thresholdLine',
+            afterDraw(chart) {
+                const threshold = THRESHOLD;
+                const yScale    = chart.scales.y;
+                const xScale    = chart.scales.x;
+                const ctx       = chart.ctx;
+                const y         = yScale.getPixelForValue(threshold);
+
+                if (y < yScale.top || y > yScale.bottom) return;
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(xScale.left, y);
+                ctx.lineTo(xScale.right, y);
+                ctx.lineWidth   = 2;
+                ctx.strokeStyle = '#e53935';
+                ctx.setLineDash([6, 4]);
+                ctx.stroke();
+
+                ctx.fillStyle = '#e53935';
+                ctx.font      = 'bold 11px Arial';
+                ctx.fillText(`⚠ Alert Threshold (${THRESHOLD} L/min)`, xScale.left + 8, y - 6);
+                ctx.restore();
+            }
+        }]
     });
 
     function addChartData(label, value) {
@@ -83,10 +111,12 @@ document.addEventListener('DOMContentLoaded', function () {
         statusText.textContent      = 'Connecting...';
     }
 
+    /* ========================================================
+       SAVE READING — normal 60s cooldown
+    ======================================================== */
     function saveReading(deviceId, flowRate, totalVolume) {
         if (!window._lastSaved || Date.now() - window._lastSaved >= 60000) {
             window._lastSaved = Date.now();
-
             fetch('/admin/flow-readings', {
                 method: 'POST',
                 headers: {
@@ -102,8 +132,28 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    /* ========================================================
+       SAVE READING IMMEDIATE — fires instantly when above threshold
+    ======================================================== */
+    function saveReadingImmediate(deviceId, flowRate, totalVolume) {
+        fetch('/admin/flow-readings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                iot_device_id: deviceId,
+                flow_rate:     flowRate,
+                total_volume:  totalVolume,
+            })
+        }).catch(err => console.error('Failed to save high flow reading:', err));
+    }
+
+    /* ========================================================
+       WEBSOCKET CONNECTION
+    ======================================================== */
     function connect(deviceId, wsUrl) {
-        // Close existing connection
         if (ws) {
             ws.onclose = null;
             ws.close();
@@ -137,8 +187,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Update chart
                 addChartData(timeLabel, parseFloat(rate));
 
-                // Save to DB
-                saveReading(currentDeviceId, rate, volume);
+                // Save immediately if above threshold, otherwise normal 60s cooldown
+                if (parseFloat(rate) >= THRESHOLD) {
+                    saveReadingImmediate(currentDeviceId, rate, volume);
+                } else {
+                    saveReading(currentDeviceId, rate, volume);
+                }
 
             } catch {
                 flowRateEl.textContent = parseFloat(event.data).toFixed(2);
@@ -149,7 +203,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         ws.onclose = () => {
             setDisconnected();
-            // Auto-reconnect every 5 seconds
             reconnectTimer = setTimeout(() => connect(currentDeviceId, currentWsUrl), 5000);
         };
     }
@@ -162,7 +215,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (!deviceId || !wsUrl) return;
 
-        // Reset chart
         flowChart.data.labels = [];
         flowChart.data.datasets[0].data = [];
         flowChart.update();
@@ -236,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /* ========================================================
-    LIVE CONSUMPTION TABLE REFRESH
+       LIVE CONSUMPTION TABLE REFRESH
     ======================================================== */
     function refreshConsumptionTable() {
         fetch('/admin/flowmeter/consumptions')
@@ -265,7 +317,8 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(err => console.error('Failed to refresh table:', err));
     }
 
-    // Refresh every 5 seconds
+    // Initial load + refresh every 5 seconds
+    refreshConsumptionTable();
     setInterval(refreshConsumptionTable, 5000);
 
-});
+}); // ← end of DOMContentLoaded
