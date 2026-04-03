@@ -23,6 +23,9 @@ WORKDIR /app
 # Copy ALL files first
 COPY . .
 
+# Create empty .env file
+RUN touch .env
+
 # Install PHP dependencies
 RUN composer install --optimize-autoloader --no-dev --no-scripts
 
@@ -37,7 +40,6 @@ RUN chmod -R 775 storage bootstrap/cache
 
 EXPOSE 10000
 
-CMD php artisan key:generate --force && \
-    php artisan config:cache && \
+CMD php artisan config:cache && \
     php artisan route:cache && \
     php artisan serve --host 0.0.0.0 --port 10000
