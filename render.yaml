@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: meedmo-water-billing
+    runtime: docker
+    plan: free
+    branch: render-deploy
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_URL
+        value: https://meedmo-water-billing.onrender.com
+      - key: APP_KEY
+        generateValue: true
