@@ -40,20 +40,8 @@ RUN chmod -R 775 storage bootstrap/cache
 
 EXPOSE 10000
 
-CMD echo "APP_NAME=Laravel" > .env && \
-    echo "APP_ENV=${APP_ENV}" >> .env && \
-    echo "APP_KEY=${APP_KEY}" >> .env && \
-    echo "APP_DEBUG=${APP_DEBUG}" >> .env && \
-    echo "APP_URL=${APP_URL}" >> .env && \
-    echo "DB_CONNECTION=${DB_CONNECTION}" >> .env && \
-    echo "DB_HOST=${DB_HOST}" >> .env && \
-    echo "DB_PORT=${DB_PORT}" >> .env && \
-    echo "DB_DATABASE=${DB_DATABASE}" >> .env && \
-    echo "DB_USERNAME=${DB_USERNAME}" >> .env && \
-    echo "DB_PASSWORD=${DB_PASSWORD}" >> .env && \
-    echo "MYSQL_ATTR_SSL_CA=${MYSQL_ATTR_SSL_CA}" >> .env && \
-    echo "SESSION_DRIVER=file" >> .env && \
-    echo "CACHE_STORE=file" >> .env && \
+CMD echo "DB_HOST is: ${DB_HOST}" && \
+    echo "DB_USERNAME is: ${DB_USERNAME}" && \
+    cat .env && \
     php artisan config:clear && \
-    php artisan cache:clear && \
     php artisan serve --host 0.0.0.0 --port 10000
