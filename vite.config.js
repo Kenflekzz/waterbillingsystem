@@ -1,28 +1,9 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import laravel from 'laravel-vite-plugin';
-import os from 'os';
 
-// Auto-detect local network IP
-function getLocalIP() {
-    const interfaces = os.networkInterfaces();
-    for (const name of Object.keys(interfaces)) {
-        for (const iface of interfaces[name]) {
-            if (
-                iface.family === 'IPv4' &&
-                !iface.internal &&
-                (iface.address.startsWith('192.168.') ||
-                 iface.address.startsWith('172.20.10.') ||
-                 iface.address.startsWith('10.'))
-            ) {
-                return iface.address;
-            }
-        }
-    }
-    return 'localhost'; // fallback when offline
-}
-
-const hmrHost = process.env.VITE_HMR_HOST || getLocalIP();
+// Safe HMR host for both local and Docker
+const hmrHost = process.env.VITE_HMR_HOST || 'localhost';
 
 export default defineConfig({
     plugins: [
@@ -67,8 +48,13 @@ export default defineConfig({
         strictPort: true,
         cors: true,
         hmr: {
-            host: hmrHost, // ✅ auto-detected!
+            host: hmrHost,
             port: 5173,
         },
+    },
+    // Add this for production build safety
+    build: {
+        outDir: 'public/build',
+        emptyOutDir: true,
     },
 });
