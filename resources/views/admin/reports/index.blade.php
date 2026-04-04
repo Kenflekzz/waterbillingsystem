@@ -83,7 +83,7 @@
 
                                         @if($report->image)
                                             <p class="mt-3"><strong>Attached Image:</strong></p>
-                                            <img src="{{ asset('storage/' . $report->image) }}"
+                                            <img src="{{ str_starts_with($report->image, 'http') ? $report->image : asset('storage/' . $report->image) }}"
                                                  class="img-fluid rounded border"
                                                  alt="Report Image">
                                         @endif
