@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
-
+use Cloudinary\Configuration\Configuration;
+use Cloudinary\Api\Upload\UploadApi;
 
 class UserProfileController extends Controller
 {
@@ -47,15 +47,30 @@ class UserProfileController extends Controller
 
             // Image upload to Cloudinary
             if ($request->hasFile('profile_image')) {
+                $config = Configuration::instance([
+                    'cloud' => [
+                        'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
+                        'api_key'    => env('CLOUDINARY_API_KEY'),
+                        'api_secret' => env('CLOUDINARY_API_SECRET'),
+                    ],
+                    'url' => ['secure' => true]
+                ]);
+
+                $uploadApi = new UploadApi($config);
+
                 // Delete old image from Cloudinary if exists
                 if ($user->profile_image_public_id) {
-                    Storage::disk('cloudinary')->delete($user->profile_image_public_id);
+                    $uploadApi->destroy($user->profile_image_public_id);
                 }
 
-                $path = Storage::disk('cloudinary')->put('profile_images', $request->file('profile_image'));
-                $user->profile_image = Storage::disk('cloudinary')->url($path);
-                $user->profile_image_public_id = $path;
+                $result = $uploadApi->upload($request->file('profile_image')->getRealPath(), [
+                    'folder' => 'profile_images'
+                ]);
+
+                $user->profile_image = $result['secure_url'];
+                $user->profile_image_public_id = $result['public_id'];
             }
+
             // Password update
             if ($request->filled('current_password') && $request->filled('new_password')) {
                 if (!Hash::check($request->current_password, $user->password)) {
