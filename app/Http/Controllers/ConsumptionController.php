@@ -146,7 +146,7 @@ class ConsumptionController extends Controller
             $estimatedBill = 150 + ($subtractedValue * $rate);
         }
 
-        return view('user.my.consumption', compact(
+        return view('user.consumption', compact(
             'rows',
             'consumerId',
             'total',
