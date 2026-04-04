@@ -49,17 +49,13 @@ class UserProfileController extends Controller
             if ($request->hasFile('profile_image')) {
                 // Delete old image from Cloudinary if exists
                 if ($user->profile_image_public_id) {
-                    cloudinary()->destroy($user->profile_image_public_id);
+                    Storage::disk('cloudinary')->delete($user->profile_image_public_id);
                 }
 
-                $uploaded = cloudinary()->upload($request->file('profile_image')->getRealPath(), [
-                    'folder' => 'profile_images'
-                ]);
-
-                $user->profile_image = $uploaded->getSecurePath();
-                $user->profile_image_public_id = $uploaded->getPublicId();
+                $path = Storage::disk('cloudinary')->put('profile_images', $request->file('profile_image'));
+                $user->profile_image = Storage::disk('cloudinary')->url($path);
+                $user->profile_image_public_id = $path;
             }
-
             // Password update
             if ($request->filled('current_password') && $request->filled('new_password')) {
                 if (!Hash::check($request->current_password, $user->password)) {

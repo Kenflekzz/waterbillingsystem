@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Homepage;
 use App\Models\UserAnnouncement;
+use Illuminate\Support\Facades\Storage;
+
 class HomepageController extends Controller
 {
     // -------------------------
@@ -54,11 +56,9 @@ class HomepageController extends Controller
         ]);
 
         // Announcement image
-        if ($request->hasFile('announcement_image')) {
-            $uploaded = cloudinary()->upload($request->file('announcement_image')->getRealPath(), [
-                'folder' => 'homepage'
-            ]);
-            $data['announcement_image'] = $uploaded->getSecurePath();
+       if ($request->hasFile('announcement_image')) {
+            $path = Storage::disk('cloudinary')->put('homepage', $request->file('announcement_image'));
+            $data['announcement_image'] = Storage::disk('cloudinary')->url($path);
         }
 
         UserAnnouncement::updateOrCreate(
@@ -80,11 +80,9 @@ class HomepageController extends Controller
                     'text'  => $advisory['text'] ?? '',
                 ];
                if ($request->hasFile("advisories.$i.image")) {
-                    $uploaded = cloudinary()->upload($request->file("advisories.$i.image")->getRealPath(), [
-                        'folder' => 'advisories'
-                    ]);
-                    $item['image'] = $uploaded->getSecurePath();
-                }else {
+                    $path = Storage::disk('cloudinary')->put('advisories', $request->file("advisories.$i.image"));
+                    $item['image'] = Storage::disk('cloudinary')->url($path);
+                } else {
                     $oldAdvisories = $homepage->advisories ?? [];
                     $item['image'] = $oldAdvisories[$i]['image'] ?? null;
                 }
@@ -97,10 +95,8 @@ class HomepageController extends Controller
         $connectImages = [];
         foreach ([0, 1] as $i) {
            if ($request->hasFile("connect_images.$i")) {
-                $uploaded = cloudinary()->upload($request->file("connect_images.$i")->getRealPath(), [
-                    'folder' => 'connect'
-                ]);
-                $connectImages[$i] = $uploaded->getSecurePath();
+                $path = Storage::disk('cloudinary')->put('connect', $request->file("connect_images.$i"));
+                $connectImages[$i] = Storage::disk('cloudinary')->url($path);
             } else {
                 $oldConnect = $homepage->connect_images ?? [];
                 $connectImages[$i] = $oldConnect[$i] ?? null;

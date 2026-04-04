@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ProblemReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class ProblemReportController extends Controller
 {
@@ -19,10 +20,8 @@ class ProblemReportController extends Controller
         $imagePath = null;
 
         if ($request->hasFile('image')) {
-            $uploaded = cloudinary()->upload($request->file('image')->getRealPath(), [
-                'folder' => 'reports'
-            ]);
-            $imagePath = $uploaded->getSecurePath();
+            $path = Storage::disk('cloudinary')->put('reports', $request->file('image'));
+            $imagePath = Storage::disk('cloudinary')->url($path);
         }
 
         ProblemReport::create([
