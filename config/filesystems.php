@@ -62,6 +62,7 @@ return [
         'cloudinary' => [
             'driver' => 'cloudinary',
             'url' => env('CLOUDINARY_URL'),
+            'upload_preset' => env('CLOUDINARY_UPLOAD_PRESET'),
         ],
 
     ],
