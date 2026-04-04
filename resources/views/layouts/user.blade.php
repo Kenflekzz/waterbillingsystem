@@ -178,8 +178,10 @@
 <div class="modal fade" id="myReportsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content p-4">
-            <h5 class="mb-3">My Submitted Reports</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">My Submitted Reports</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
             <table class="table table-hover">
                 <thead class="table-dark">
                     <tr>
