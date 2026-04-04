@@ -155,7 +155,7 @@
 {{--  HIDDEN CONSUMER ID FOR JS  --}}
 <input type="hidden" id="filter-consumer" value="{{ $consumerId }}">
 
-@vite('resources/js/behavioral.js','resources/css/consumption.css')
+@vite(['resources/js/behavioral.js', 'resources/css/consumption.css'])
 <script>window.IS_USER_PAGE = true;</script>
 <script>
 window.addEventListener('DOMContentLoaded', () => {
