@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,9 +16,14 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Auto-detect local network IP and set APP_URL dynamically
-        $ip = $this->getLocalIP();
-        config(['app.url' => 'http://' . $ip . ':8000']);
+        // Force HTTPS in production
+        if (env('APP_ENV') === 'production') {
+            URL::forceScheme('https');
+        } else {
+            // Auto-detect local network IP and set APP_URL dynamically
+            $ip = $this->getLocalIP();
+            config(['app.url' => 'http://' . $ip . ':8000']);
+        }
 
         if (request()->is('admin/*')) {
             Config::set('session.cookie', config('session.admin_cookie', 'laravel_admin_session'));
@@ -80,9 +86,9 @@ class AppServiceProvider extends ServiceProvider
                 foreach ($interface['unicast'] ?? [] as $unicast) {
                     $ip = $unicast['address'] ?? '';
                     if (
-                        str_starts_with($ip, '192.168.') ||  // WiFi / Android hotspot
-                        str_starts_with($ip, '172.20.10.') || // iPhone hotspot
-                        str_starts_with($ip, '10.')           // Some Android hotspots
+                        str_starts_with($ip, '192.168.') ||
+                        str_starts_with($ip, '172.20.10.') ||
+                        str_starts_with($ip, '10.')
                     ) {
                         return $ip;
                     }
@@ -90,6 +96,6 @@ class AppServiceProvider extends ServiceProvider
             }
         }
 
-        return 'localhost'; // fallback when offline
+        return 'localhost';
     }
 }
