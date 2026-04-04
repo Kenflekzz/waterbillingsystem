@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
+
 
 class UserProfileController extends Controller
 {
@@ -49,10 +49,10 @@ class UserProfileController extends Controller
             if ($request->hasFile('profile_image')) {
                 // Delete old image from Cloudinary if exists
                 if ($user->profile_image_public_id) {
-                    Cloudinary::destroy($user->profile_image_public_id);
+                    cloudinary()->destroy($user->profile_image_public_id);
                 }
 
-                $uploaded = Cloudinary::upload($request->file('profile_image')->getRealPath(), [
+                $uploaded = cloudinary()->upload($request->file('profile_image')->getRealPath(), [
                     'folder' => 'profile_images'
                 ]);
 

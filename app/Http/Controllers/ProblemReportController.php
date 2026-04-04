@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\ProblemReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class ProblemReportController extends Controller
 {
@@ -20,7 +19,7 @@ class ProblemReportController extends Controller
         $imagePath = null;
 
         if ($request->hasFile('image')) {
-            $uploaded = Cloudinary::upload($request->file('image')->getRealPath(), [
+            $uploaded = cloudinary()->upload($request->file('image')->getRealPath(), [
                 'folder' => 'reports'
             ]);
             $imagePath = $uploaded->getSecurePath();

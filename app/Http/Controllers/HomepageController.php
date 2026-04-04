@@ -55,7 +55,10 @@ class HomepageController extends Controller
 
         // Announcement image
         if ($request->hasFile('announcement_image')) {
-            $data['announcement_image'] = $request->file('announcement_image')->store('homepage', 'public');
+            $uploaded = cloudinary()->upload($request->file('announcement_image')->getRealPath(), [
+                'folder' => 'homepage'
+            ]);
+            $data['announcement_image'] = $uploaded->getSecurePath();
         }
 
         UserAnnouncement::updateOrCreate(
@@ -76,10 +79,12 @@ class HomepageController extends Controller
                     'title' => $advisory['title'] ?? '',
                     'text'  => $advisory['text'] ?? '',
                 ];
-                if ($request->hasFile("advisories.$i.image")) {
-                    $path = $request->file("advisories.$i.image")->store("uploads/advisories", "public");
-                    $item['image'] = "storage/" . $path;
-                } else {
+               if ($request->hasFile("advisories.$i.image")) {
+                    $uploaded = cloudinary()->upload($request->file("advisories.$i.image")->getRealPath(), [
+                        'folder' => 'advisories'
+                    ]);
+                    $item['image'] = $uploaded->getSecurePath();
+                }else {
                     $oldAdvisories = $homepage->advisories ?? [];
                     $item['image'] = $oldAdvisories[$i]['image'] ?? null;
                 }
@@ -91,9 +96,11 @@ class HomepageController extends Controller
         // Connect Images (2 slots)
         $connectImages = [];
         foreach ([0, 1] as $i) {
-            if ($request->hasFile("connect_images.$i")) {
-                $path = $request->file("connect_images.$i")->store("uploads/connect", "public");
-                $connectImages[$i] = "storage/" . $path;
+           if ($request->hasFile("connect_images.$i")) {
+                $uploaded = cloudinary()->upload($request->file("connect_images.$i")->getRealPath(), [
+                    'folder' => 'connect'
+                ]);
+                $connectImages[$i] = $uploaded->getSecurePath();
             } else {
                 $oldConnect = $homepage->connect_images ?? [];
                 $connectImages[$i] = $oldConnect[$i] ?? null;
