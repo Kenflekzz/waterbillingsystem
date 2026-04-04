@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Homepage;
 use App\Models\UserAnnouncement;
-use Illuminate\Support\Facades\Storage;
+use Cloudinary\Configuration\Configuration;
+use Cloudinary\Api\Upload\UploadApi;
 
 class HomepageController extends Controller
 {
@@ -56,13 +57,12 @@ class HomepageController extends Controller
         ]);
 
         // Announcement image
-       if ($request->hasFile('announcement_image')) {
-            $path = Storage::disk('cloudinary')->put('homepage', $request->file('announcement_image'));
-            $data['announcement_image'] = Storage::disk('cloudinary')->url($path);
+        if ($request->hasFile('announcement_image')) {
+            $data['announcement_image'] = $this->uploadToCloudinary($request->file('announcement_image'), 'homepage');
         }
 
         UserAnnouncement::updateOrCreate(
-            ['id' => 1], // you can choose to always keep one record, or use other logic
+            ['id' => 1],
             [
                 'title' => $data['announcement_heading'] ?? '',
                 'content' => $data['announcement_text'] ?? '',
@@ -79,9 +79,8 @@ class HomepageController extends Controller
                     'title' => $advisory['title'] ?? '',
                     'text'  => $advisory['text'] ?? '',
                 ];
-               if ($request->hasFile("advisories.$i.image")) {
-                    $path = Storage::disk('cloudinary')->put('advisories', $request->file("advisories.$i.image"));
-                    $item['image'] = Storage::disk('cloudinary')->url($path);
+                if ($request->hasFile("advisories.$i.image")) {
+                    $item['image'] = $this->uploadToCloudinary($request->file("advisories.$i.image"), 'advisories');
                 } else {
                     $oldAdvisories = $homepage->advisories ?? [];
                     $item['image'] = $oldAdvisories[$i]['image'] ?? null;
@@ -89,20 +88,19 @@ class HomepageController extends Controller
                 $advisoriesData[] = $item;
             }
         }
-        $data['advisories'] = $advisoriesData; // no json_encode()
+        $data['advisories'] = $advisoriesData;
 
         // Connect Images (2 slots)
         $connectImages = [];
         foreach ([0, 1] as $i) {
-           if ($request->hasFile("connect_images.$i")) {
-                $path = Storage::disk('cloudinary')->put('connect', $request->file("connect_images.$i"));
-                $connectImages[$i] = Storage::disk('cloudinary')->url($path);
+            if ($request->hasFile("connect_images.$i")) {
+                $connectImages[$i] = $this->uploadToCloudinary($request->file("connect_images.$i"), 'connect');
             } else {
                 $oldConnect = $homepage->connect_images ?? [];
                 $connectImages[$i] = $oldConnect[$i] ?? null;
             }
         }
-        $data['connect_images'] = $connectImages; // no json_encode()
+        $data['connect_images'] = $connectImages;
 
         // Save all updates
         $homepage->update($data);
@@ -116,8 +114,29 @@ class HomepageController extends Controller
     public function index()
     {
         $homepage = Homepage::first();
-
-        $announcements = UserAnnouncement::orderBy('created_at' , 'desc')->get();
+        $announcements = UserAnnouncement::orderBy('created_at', 'desc')->get();
         return view('welcome', compact('homepage'));
+    }
+
+    // -------------------------
+    // Helper: Upload to Cloudinary
+    // -------------------------
+    private function uploadToCloudinary($file, $folder)
+    {
+        $config = Configuration::instance([
+            'cloud' => [
+                'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
+                'api_key'    => env('CLOUDINARY_API_KEY'),
+                'api_secret' => env('CLOUDINARY_API_SECRET'),
+            ],
+            'url' => ['secure' => true]
+        ]);
+
+        $uploadApi = new UploadApi($config);
+        $result = $uploadApi->upload($file->getRealPath(), [
+            'folder' => $folder
+        ]);
+
+        return $result['secure_url'];
     }
 }

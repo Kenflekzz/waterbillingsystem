@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\ProblemReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
+use Cloudinary\Configuration\Configuration;
+use Cloudinary\Api\Upload\UploadApi;
 
 class ProblemReportController extends Controller
 {
@@ -20,8 +21,20 @@ class ProblemReportController extends Controller
         $imagePath = null;
 
         if ($request->hasFile('image')) {
-            $path = Storage::disk('cloudinary')->put('reports', $request->file('image'));
-            $imagePath = Storage::disk('cloudinary')->url($path);
+            $config = Configuration::instance([
+                'cloud' => [
+                    'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
+                    'api_key'    => env('CLOUDINARY_API_KEY'),
+                    'api_secret' => env('CLOUDINARY_API_SECRET'),
+                ],
+                'url' => ['secure' => true]
+            ]);
+
+            $uploadApi = new UploadApi($config);
+            $result = $uploadApi->upload($request->file('image')->getRealPath(), [
+                'folder' => 'reports'
+            ]);
+            $imagePath = $result['secure_url'];
         }
 
         ProblemReport::create([
