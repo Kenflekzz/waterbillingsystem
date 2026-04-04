@@ -23,8 +23,8 @@ WORKDIR /app
 # Copy ALL files first
 COPY . .
 
-# Copy .env.example to .env
-RUN cp .env.example .env
+# Create empty .env file at build time
+RUN touch .env
 
 # Install PHP dependencies
 RUN composer install --optimize-autoloader --no-dev --no-scripts
@@ -40,8 +40,6 @@ RUN chmod -R 775 storage bootstrap/cache
 
 EXPOSE 10000
 
-CMD echo "DB_HOST is: ${DB_HOST}" && \
-    echo "DB_USERNAME is: ${DB_USERNAME}" && \
-    cat .env && \
+CMD env | grep -E "^(APP_|DB_|MYSQL_|SESSION_|CACHE_)" > .env && \
     php artisan config:clear && \
     php artisan serve --host 0.0.0.0 --port 10000
