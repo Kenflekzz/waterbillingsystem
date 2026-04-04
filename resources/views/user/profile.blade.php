@@ -17,7 +17,7 @@
                     <!-- PROFILE IMAGE -->
                     <div class="text-center mb-4">
                         <img 
-                            src="{{ $user->profile_image ? asset('storage/' . $user->profile_image) : asset('images/canva-user-icon-MAG2DI-JFjM.png') }}" 
+                            src="{{ $user->profile_image ? (str_starts_with($user->profile_image, 'http') ? $user->profile_image : asset('storage/' . $user->profile_image)) : asset('images/canva-user-icon-MAG2DI-JFjM.png') }}"
                             id="profileImagePreview"
                             class="rounded-circle shadow mb-3 img-fluid" 
                             alt="User Avatar" 
