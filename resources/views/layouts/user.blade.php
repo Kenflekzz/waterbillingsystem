@@ -74,7 +74,7 @@
     <!-- Profile Card -->
     <div class="sidebar-profile card shadow-sm border-0 p-3 text-center mb-4">
         <!-- Profile Picture -->
-        <img src="{{ asset('storage/' . $user->profile_image) }}" 
+        <img src="{{ $user->profile_image ? (str_starts_with($user->profile_image, 'http') ? $user->profile_image : asset('storage/' . $user->profile_image)) : asset('images/default-avatar.png') }}"
              class="rounded-circle mb-2 mx-auto d-block"
              width="70" height="70"
              style="object-fit: cover;">
