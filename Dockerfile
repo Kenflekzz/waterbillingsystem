@@ -41,5 +41,6 @@ RUN chmod -R 775 storage bootstrap/cache
 EXPOSE 10000
 
 CMD env | grep -E "^(APP_|DB_|MYSQL_|SESSION_|CACHE_)" > .env && \
+    cat .env && \
     php artisan config:clear && \
     php artisan serve --host 0.0.0.0 --port 10000
