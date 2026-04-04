@@ -124,7 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 data-status="${r.status}"
                                 data-date="${new Date(r.created_at).toLocaleDateString()}"
                                 data-description="${r.description}"
-                                data-image="${r.image ? r.image : ''}"
+                                data-image="${r.image ? r.image : ''}">
                                 View
                             </button>
                         </td>
