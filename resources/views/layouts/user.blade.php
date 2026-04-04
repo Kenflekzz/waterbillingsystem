@@ -179,6 +179,7 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content p-4">
             <h5 class="mb-3">My Submitted Reports</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             <table class="table table-hover">
                 <thead class="table-dark">
                     <tr>
