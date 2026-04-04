@@ -69,7 +69,7 @@ Route::prefix('user')->name('user.')->middleware('web')->group(function () {
 
 
     Route::middleware(['auth:user'])->group(function () {
-        Route::get('/consumption', [UsersAuthController::class, 'consumption'])->name('consumption');
+        Route::get('/consumption', [ConsumptionController::class, 'index'])->name('consumption');
         Route::post('/logout', [UsersAuthController::class, 'logout'])->name('logout');
         Route::get('/profile', [Usercontroller::class, 'profile'])->name('profile');
         Route::get('/billing', [UserController::class, 'billing'])->name('billing');
