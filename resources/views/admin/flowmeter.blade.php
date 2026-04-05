@@ -33,7 +33,6 @@
                         <option value="">-- Select Device --</option>
                         @foreach($devices as $device)
                             <option value="{{ $device->id }}"
-                                    data-ws="ws://{{ $device->ip_address }}:{{ $device->port }}"
                                     data-name="{{ $device->device_name }}">
                                 {{ $device->device_name }}
                                 ({{ $device->client?->full_name ?? 'Unassigned' }})
