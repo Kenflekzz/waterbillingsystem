@@ -1,6 +1,7 @@
 <template>
   <div class="login-wrapper d-flex align-items-center justify-content-center vh-100">
-    <div class="card shadow-sm p-4 w-100" style="max-width: 400px;">
+    <div class="overlay"></div>
+    <div class="card shadow-sm p-4 w-100" style="max-width: 400px; position: relative; z-index: 1;">
       <h4 class="text-center mb-3">Reset Password</h4>
 
       <!-- OTP SEND FORM -->
@@ -54,12 +55,12 @@ export default {
       otpSent: false,
       msg: '',
       err: false,
-      sending: false   // controls spinner + disabled state
+      sending: false
     };
   },
   methods: {
     async sendOtp() {
-      this.sending = true;          // show spinner
+      this.sending = true;
       this.msg = this.err = '';
 
       try {
@@ -82,7 +83,7 @@ export default {
         this.err = true;
         this.otpSent = false;
       } finally {
-        this.sending = false;        // hide spinner
+        this.sending = false;
       }
     },
 
@@ -118,6 +119,25 @@ function csrf() {
 </script>
 
 <style scoped>
+.login-wrapper {
+  background-image: url('/images/water-tower-with-clouds-passing.webp');
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 0;
+}
+
 /* slide-down for message bar */
 .slide-enter-active, .slide-leave-active {
   transition: all .3s ease;
