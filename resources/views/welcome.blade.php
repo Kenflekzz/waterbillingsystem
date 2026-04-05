@@ -141,6 +141,8 @@
                         @foreach($connectImages as $img)
                             <div class="col-6 d-flex justify-content-center">
                                 <img src="{{ str_starts_with($img, 'http') ? $img : asset($img) }}"
+                                    class="border-white img-fluid"
+                                    style="width: 350px; height: 250px; object-fit: cover;">
                             </div>
                         @endforeach
                     </div>
