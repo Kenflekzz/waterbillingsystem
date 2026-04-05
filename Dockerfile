@@ -40,7 +40,7 @@ RUN chmod -R 775 storage bootstrap/cache
 
 EXPOSE 10000
 
-CMD env | grep -E "^(APP_|DB_|MYSQL_|SESSION_|CACHE_|CLOUDINARY_)" > /app/.env && \
+CMD env | grep -E "^(APP_|DB_|MYSQL_|SESSION_|CACHE_|CLOUDINARY_|IOT_)" > /app/.env && \
     echo "=== .ENV CONTENTS ===" && \
     cat /app/.env && \
     php artisan config:clear && \

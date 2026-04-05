@@ -22,6 +22,15 @@ class FlowReadingController extends Controller
     // Save reading from JS
     public function store(Request $request)
     {
+        // Check if request is from ESP32
+        $isFromESP32 = $request->hasHeader('X-Device-Token');
+
+        if ($isFromESP32) {
+            if ($request->header('X-Device-Token') !== env('IOT_DEVICE_TOKEN')) {
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+        }
+
         $validated = $request->validate([
             'iot_device_id' => 'required|exists:iot_devices,id',
             'flow_rate'     => 'required|numeric|min:0',
@@ -40,13 +49,12 @@ class FlowReadingController extends Controller
         ]);
 
         Log::info('FlowReading store called', [
-        'flow_rate'    => $validated['flow_rate'],
-        'threshold'    => self::FLOW_THRESHOLD,
-        'exceeds'      => $validated['flow_rate'] >= self::FLOW_THRESHOLD,
-        'client_id'    => $device->client_id,
-    ]);
+            'flow_rate'    => $validated['flow_rate'],
+            'threshold'    => self::FLOW_THRESHOLD,
+            'exceeds'      => $validated['flow_rate'] >= self::FLOW_THRESHOLD,
+            'client_id'    => $device->client_id,
+        ]);
 
-        // ← This was missing in your version
         $this->checkThresholdAndAlert(
             $device,
             $validated['flow_rate'],
@@ -60,6 +68,7 @@ class FlowReadingController extends Controller
             'alert_sent'  => $validated['flow_rate'] >= self::FLOW_THRESHOLD,
         ]);
     }
+    
 
     // Get latest reading for a specific device
     public function latest($deviceId)

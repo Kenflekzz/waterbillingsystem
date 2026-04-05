@@ -12,12 +12,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const statusDot       = document.getElementById('live-status-dot');
     const statusText      = document.getElementById('live-status-text');
 
-    let ws              = null;
-    let reconnectTimer  = null;
+    let pollingInterval = null;
     let currentDeviceId = null;
-    let currentWsUrl    = null;
 
-    const THRESHOLD = 50; // Must match FLOW_THRESHOLD in controller
+    const THRESHOLD = 50;
 
     /* ========================================================
        CHART SETUP
@@ -45,9 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 x: { ticks: { maxTicksLimit: 10 } },
                 y: { beginAtZero: true, title: { display: true, text: 'L/min' } }
             },
-            plugins: {
-                legend: { display: true },
-            }
+            plugins: { legend: { display: true } }
         },
         plugins: [{
             id: 'thresholdLine',
@@ -88,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /* ========================================================
-       WEBSOCKET
+       STATUS HELPERS
     ======================================================== */
     function setConnected() {
         statusDot.style.background  = '#4caf50';
@@ -105,121 +101,53 @@ document.addEventListener('DOMContentLoaded', function () {
         cubicMeterEl.textContent    = '--';
     }
 
-    function setConnecting() {
-        statusDot.style.background  = '#ff9800';
-        statusText.style.color      = '#ff9800';
-        statusText.textContent      = 'Connecting...';
-    }
-
     /* ========================================================
-       SAVE READING — normal 60s cooldown
+       POLLING - replaces WebSocket
     ======================================================== */
-    function saveReading(deviceId, flowRate, totalVolume) {
-        if (!window._lastSaved || Date.now() - window._lastSaved >= 60000) {
-            window._lastSaved = Date.now();
-            fetch('/admin/flow-readings', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({
-                    iot_device_id: deviceId,
-                    flow_rate:     flowRate,
-                    total_volume:  totalVolume,
-                })
-            }).catch(err => console.error('Failed to save reading:', err));
-        }
-    }
-
-    /* ========================================================
-       SAVE READING IMMEDIATE — fires instantly when above threshold
-    ======================================================== */
-    function saveReadingImmediate(deviceId, flowRate, totalVolume) {
-        fetch('/admin/flow-readings', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify({
-                iot_device_id: deviceId,
-                flow_rate:     flowRate,
-                total_volume:  totalVolume,
-            })
-        }).catch(err => console.error('Failed to save high flow reading:', err));
-    }
-
-    /* ========================================================
-       WEBSOCKET CONNECTION
-    ======================================================== */
-    function connect(deviceId, wsUrl) {
-        if (ws) {
-            ws.onclose = null;
-            ws.close();
-        }
-        clearTimeout(reconnectTimer);
-
+    function startPolling(deviceId) {
+        if (pollingInterval) clearInterval(pollingInterval);
         currentDeviceId = deviceId;
-        currentWsUrl    = wsUrl;
+        setConnected();
 
-        setConnecting();
-        ws = new WebSocket(wsUrl);
+        pollingInterval = setInterval(() => {
+            fetch(`/admin/flow-readings/latest/${deviceId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data) {
+                        setDisconnected();
+                        return;
+                    }
 
-        ws.onopen = () => {
-            setConnected();
-            clearTimeout(reconnectTimer);
-        };
+                    const rate       = parseFloat(data.flow_rate    ?? 0).toFixed(2);
+                    const volume     = parseFloat(data.total_volume ?? 0).toFixed(2);
+                    const cubicMeter = (parseFloat(volume) / 1000).toFixed(4);
+                    const timeLabel  = new Date().toLocaleTimeString();
 
-        ws.onmessage = (event) => {
-            try {
-                const data       = JSON.parse(event.data);
-                const rate       = parseFloat(data.flow_rate    ?? 0).toFixed(2);
-                const volume     = parseFloat(data.total_volume ?? 0).toFixed(2);
-                const cubicMeter = (parseFloat(volume) / 1000).toFixed(4);
-                const timeLabel  = new Date().toLocaleTimeString();
+                    flowRateEl.textContent    = rate;
+                    totalVolumeEl.textContent = volume;
+                    cubicMeterEl.textContent  = cubicMeter;
 
-                // Update display
-                flowRateEl.textContent    = rate;
-                totalVolumeEl.textContent = volume;
-                cubicMeterEl.textContent  = cubicMeter;
-
-                // Update chart
-                addChartData(timeLabel, parseFloat(rate));
-
-                // Save immediately if above threshold, otherwise normal 60s cooldown
-                if (parseFloat(rate) >= THRESHOLD) {
-                    saveReadingImmediate(currentDeviceId, rate, volume);
-                } else {
-                    saveReading(currentDeviceId, rate, volume);
-                }
-
-            } catch {
-                flowRateEl.textContent = parseFloat(event.data).toFixed(2);
-            }
-        };
-
-        ws.onerror = () => setDisconnected();
-
-        ws.onclose = () => {
-            setDisconnected();
-            reconnectTimer = setTimeout(() => connect(currentDeviceId, currentWsUrl), 5000);
-        };
+                    addChartData(timeLabel, parseFloat(rate));
+                })
+                .catch(err => {
+                    console.error('Polling failed:', err);
+                    setDisconnected();
+                });
+        }, 5000); // poll every 5 seconds
     }
 
-    // Connect when device is selected
+    /* ========================================================
+       DEVICE SELECT
+    ======================================================== */
     deviceSelect?.addEventListener('change', function () {
-        const selected = this.options[this.selectedIndex];
         const deviceId = this.value;
-        const wsUrl    = selected.dataset.ws;
-
-        if (!deviceId || !wsUrl) return;
+        if (!deviceId) return;
 
         flowChart.data.labels = [];
         flowChart.data.datasets[0].data = [];
         flowChart.update();
 
-        connect(deviceId, wsUrl);
+        startPolling(deviceId);
     });
 
     /* ========================================================
@@ -227,10 +155,10 @@ document.addEventListener('DOMContentLoaded', function () {
     ======================================================== */
     document.querySelectorAll('.save-assign-btn').forEach(btn => {
         btn.addEventListener('click', function () {
-            const deviceId  = this.dataset.deviceId;
-            const modal     = document.getElementById('assignModal' + deviceId);
-            const select    = modal.querySelector('.assign-client-select');
-            const clientId  = select.value;
+            const deviceId = this.dataset.deviceId;
+            const modal    = document.getElementById('assignModal' + deviceId);
+            const select   = modal.querySelector('.assign-client-select');
+            const clientId = select.value;
 
             if (!clientId) {
                 Swal.fire('Warning', 'Please select a consumer.', 'warning');
@@ -317,8 +245,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(err => console.error('Failed to refresh table:', err));
     }
 
-    // Initial load + refresh every 5 seconds
     refreshConsumptionTable();
     setInterval(refreshConsumptionTable, 5000);
 
-}); // ← end of DOMContentLoaded
+});

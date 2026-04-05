@@ -1,8 +1,6 @@
 import Chart from 'chart.js/auto';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import axios from 'axios';
-import Echo from 'laravel-echo';
-import Pusher from 'pusher-js';
 
 /* ==================== LEVEL BACKGROUND ==================== */
 const levelBackground = {
@@ -31,18 +29,7 @@ const levelBackground = {
 
 Chart.register(zoomPlugin, levelBackground);
 
-/* ==================== PUSHER ==================== */
-const PUSHER_KEY = import.meta.env.VITE_PUSHER_APP_KEY;
-const PUSHER_CLUSTER = import.meta.env.VITE_PUSHER_APP_CLUSTER || 'mt1';
-axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-window.Pusher = Pusher;
-
-const echo = new Echo({
-  broadcaster: 'pusher',
-  key: PUSHER_KEY,
-  cluster: PUSHER_CLUSTER,
-  forceTLS: true,
-});
+axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
 /* ==================== CHART ==================== */
 const ctx = document.getElementById('behavior-chart')?.getContext('2d');
@@ -88,9 +75,8 @@ function loadAllConsumerData() {
 
 /* ---------------- WEEK NUMBER ---------------- */
 function getWeekNumber(d) {
-  // ISO week number: Monday = 0
   const target = new Date(d.valueOf());
-  const dayNr = (d.getDay() + 6) % 7; // Monday = 0, Sunday = 6
+  const dayNr = (d.getDay() + 6) % 7;
   target.setDate(target.getDate() - dayNr + 3);
   const firstThursday = new Date(target.getFullYear(), 0, 4);
   const diff = target - firstThursday;
@@ -101,15 +87,14 @@ function getWeekNumber(d) {
 function addDataPoint(userId, datetime, value, barangay = null) {
   if (!userId) return;
   const cid   = String(userId);
-  const d     = new Date(datetime);          // original UTC stamp
+  const d     = new Date(datetime);
   const ts    = d.toISOString();
   const label = d.toLocaleString();
 
-  /* ----- Manila calendar values (UTC+8) ----- */
-  const manila = new Date(d.getTime() + 8 * 3600 * 1000); // shift +8 h
-  const week   = getISOWeek(manila);      // ISO week, Monday-based
-  const day    = manila.getUTCDate();        // 1-31  (already shifted)
-  const month  = manila.getUTCMonth() + 1;   // 1-12
+  const manila = new Date(d.getTime() + 8 * 3600 * 1000);
+  const week   = getISOWeek(manila);
+  const day    = manila.getUTCDate();
+  const month  = manila.getUTCMonth() + 1;
   const year   = manila.getUTCFullYear();
 
   if (!allConsumerData[cid]) allConsumerData[cid] = [];
@@ -156,16 +141,8 @@ function createChart() {
       },
       plugins: {
         zoom: {
-          pan: {
-            enabled: true,
-            mode: 'x'
-          },
-          zoom: {
-            wheel: {
-              enabled: true
-            },
-            mode: 'x'
-          }
+          pan: { enabled: true, mode: 'x' },
+          zoom: { wheel: { enabled: true }, mode: 'x' }
         },
         title: {
           display: true,
@@ -200,40 +177,36 @@ function createChart() {
 
 function smoothUpdate() {
   if (!behaviorChart) return;
-  behaviorChart.update({
-    duration: 700,
-    easing: 'easeInOutCubic'
-  });
+  behaviorChart.update({ duration: 700, easing: 'easeInOutCubic' });
 }
 
 /* ---------------- DISPLAY DATA WITH FILTERS ---------------- */
 function updateChartDisplay(consumerId = '') {
   if (!behaviorChart) return;
 
-  const year  = document.getElementById('filter-year')?.value   || '';
-  const month = document.getElementById('filter-month')?.value  || '';
-  const week  = document.getElementById('filter-week')?.value   || '';
-  const day   = document.getElementById('filter-day')?.value    || '';
+  const year     = document.getElementById('filter-year')?.value     || '';
+  const month    = document.getElementById('filter-month')?.value    || '';
+  const week     = document.getElementById('filter-week')?.value     || '';
+  const day      = document.getElementById('filter-day')?.value      || '';
   const barangay = document.getElementById('filter-barangay')?.value || '';
   const selected = consumerId || '';
-  const isAll = selected === '' || selected.toLowerCase() === 'all';
+  const isAll    = selected === '' || selected.toLowerCase() === 'all';
 
   const records = isAll
     ? Object.values(allConsumerData).flat()
     : (allConsumerData[selected] || []);
 
   const filtered = records.filter(p => {
-    if (year  && p.year  !== Number(year))  return false;
-    if (month && p.month !== Number(month)) return false;
-    if (week  && p.week  !== Number(week))  return false;
-    if (day   && p.day   !== Number(day))   return false;
+    if (year     && p.year  !== Number(year))  return false;
+    if (month    && p.month !== Number(month)) return false;
+    if (week     && p.week  !== Number(week))  return false;
+    if (day      && p.day   !== Number(day))   return false;
     if (barangay && p.barangay?.toString() !== barangay) return false;
     return true;
   });
 
   let merged = [];
   if (isAll) {
-    /* ---------- aggregate by timestamp ---------- */
     const sumMap = {};
     filtered.forEach(p => {
       if (!sumMap[p.ts]) sumMap[p.ts] = { ts: p.ts, value: 0 };
@@ -241,14 +214,12 @@ function updateChartDisplay(consumerId = '') {
     });
     merged = Object.values(sumMap);
   } else {
-    merged = filtered;          // single consumer – no aggregation
+    merged = filtered;
   }
 
-  /* ---------- always sort by ISO ts ---------- */
   merged.sort((a, b) => new Date(a.ts) - new Date(b.ts));
 
-  /* ---------- feed Chart.js ---------- */
-  behaviorChart.data.labels = merged.map(p => formatLocalTimestamp(new Date(p.ts))); // pretty label
+  behaviorChart.data.labels = merged.map(p => formatLocalTimestamp(new Date(p.ts)));
   behaviorChart.data.datasets[0].data = merged.map(p => p.value);
   behaviorChart.data.datasets[0].label = isAll
     ? 'Water Consumption (All Consumers)'
@@ -259,16 +230,11 @@ function updateChartDisplay(consumerId = '') {
 
 /* ==================== LOAD SERVER DATA ==================== */
 async function loadData(consumerId = '') {
-
-   const activeConsumer = consumerId ||
-                         document.getElementById('filter-consumer')?.value ||
-                         window.DEMO_CONSUMER ||   // blade can echo session here
-                         '';
   const params = {
-    year: document.getElementById('filter-year')?.value || '',
-    month: document.getElementById('filter-month')?.value || '',
-    week: document.getElementById('filter-week')?.value || '',
-    day: document.getElementById('filter-day')?.value || '',
+    year:     document.getElementById('filter-year')?.value     || '',
+    month:    document.getElementById('filter-month')?.value    || '',
+    week:     document.getElementById('filter-week')?.value     || '',
+    day:      document.getElementById('filter-day')?.value      || '',
     barangay: document.getElementById('filter-barangay')?.value || '',
     consumer: consumerId || '',
   };
@@ -288,7 +254,7 @@ async function loadData(consumerId = '') {
 
 function initFeedButton() {
   const btn = document.getElementById('feed-random');
-  if (!btn) return; // safety
+  if (!btn) return;
 
   btn.addEventListener('click', async () => {
     const consumerId = document.getElementById('feed-consumer')?.value;
@@ -306,105 +272,79 @@ function initFeedButton() {
     const randomValue = Math.floor(Math.random() * 500);
 
     try {
-  /* 1. store the data point */
-  const res = await axios.post('/admin/behavior/data', {
-    user_id: consumerId,
-    value: randomValue,
-    metric_name: 'consumption',
-    meta: { barangay },
-    created_at: iso
-  });
+      const res = await axios.post('/admin/behavior/data', {
+        user_id: consumerId,
+        value: randomValue,
+        metric_name: 'consumption',
+        meta: { barangay },
+        created_at: iso
+      });
 
-  /* 2. remember the consumer for the user side */
-  await fetch('/admin/set-demo-consumer', {
-    method: 'POST',
-    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content },
-    body: new URLSearchParams({ consumer_id: consumerId })
-  });
+      await fetch('/admin/set-demo-consumer', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content },
+        body: new URLSearchParams({ consumer_id: consumerId })
+      });
 
-  /* 3. continue with local chart update … */
-  const row = res.data;
-  const createdAt = row.created_at ? new Date(row.created_at) : new Date();
-  const finalValue = Number(row.value ?? randomValue);
-  addDataPoint(consumerId, createdAt, finalValue, barangay);
-  updateChartDisplay(document.getElementById('filter-consumer')?.value || '');
+      const row = res.data;
+      const createdAt = row.created_at ? new Date(row.created_at) : new Date();
+      const finalValue = Number(row.value ?? randomValue);
+      addDataPoint(consumerId, createdAt, finalValue, barangay);
+      updateChartDisplay(document.getElementById('filter-consumer')?.value || '');
 
-  if (finalValue >= 350) {
-    alert(`⚠️ Warning: High consumption (${finalValue} C.U.)`);
-  }
-} catch (err) {
-  console.error('Failed to feed / set demo consumer', err);
-  alert('Failed – see console.');
-}
-  });
-}
-
-
-/* ==================== PUSHER REALTIME LISTENER ==================== */
-function initEchoListener() {
-  echo.channel('sensor-data').listen('SensorDataReceived', (payload) => {
-    try {
-      const consumerId = payload.consumer_id || 'unknown';
-      const createdAt = payload.created_at ? new Date(payload.created_at) : new Date();
-      addDataPoint(consumerId, createdAt, Number(payload.value));
-
-      const selectedConsumer = document.getElementById('filter-consumer')?.value || '';
-      updateChartDisplay(selectedConsumer);
-    } catch (e) {
-      console.warn('Malformed payload', e);
+      if (finalValue >= 350) {
+        alert(`⚠️ Warning: High consumption (${finalValue} C.U.)`);
+      }
+    } catch (err) {
+      console.error('Failed to feed / set demo consumer', err);
+      alert('Failed – see console.');
     }
   });
 }
 
 function getISOWeek(manilaDate) {
   const d = new Date(Date.UTC(manilaDate.getUTCFullYear(), manilaDate.getUTCMonth(), manilaDate.getUTCDate()));
-  const dayNr = (d.getUTCDay() + 6) % 7; // Mon=0 … Sun=6
+  const dayNr = (d.getUTCDay() + 6) % 7;
   d.setUTCDate(d.getUTCDate() - dayNr + 3);
   const firstThu = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
   return 1 + Math.round((d - firstThu) / 864e5 / 7);
 }
 
 function rebuildDayWeekOptions() {
-  const weekSel = document.getElementById('filter-week');
+  const weekSel  = document.getElementById('filter-week');
   const monthSel = document.getElementById('filter-month');
-  const yearSel = document.getElementById('filter-year');
-  const daySel = document.getElementById('filter-day');
+  const yearSel  = document.getElementById('filter-year');
+  const daySel   = document.getElementById('filter-day');
   if (!weekSel || !monthSel || !yearSel || !daySel) return;
 
-  const y = Number(document.getElementById('filter-year')?.value || new Date().getFullYear());
+  const y = Number(document.getElementById('filter-year')?.value  || new Date().getFullYear());
   const m = Number(document.getElementById('filter-month')?.value || new Date().getMonth() + 1);
 
   weekSel.innerHTML = '<option value="">All Weeks</option>';
 
-  /* first Monday of the month (or the Monday before) */
   const firstDay = new Date(Date.UTC(y, m - 1, 1));
   const mon1 = new Date(firstDay.getTime() + 8 * 3600 * 1000);
   mon1.setUTCDate(mon1.getUTCDate() - (mon1.getUTCDay() + 6) % 7);
 
-  /* last Sunday of the month (or the Sunday after) */
   const lastDay = new Date(Date.UTC(y, m, 0));
   const sun1 = new Date(lastDay.getTime() + 8 * 3600 * 1000);
   sun1.setUTCDate(sun1.getUTCDate() + (7 - sun1.getUTCDay()) % 7);
 
-  /* ----  quick check  ---- */
-  console.log(`Month ${m}-${y}  weeks ${getISOWeek(mon1)} → ${getISOWeek(sun1)}`);
-
-  /* walk week-by-week until we pass the last Sunday */
   let current = new Date(mon1);
   const stop  = new Date(sun1);
   while (current <= stop) {
     const w = getISOWeek(current);
     weekSel.insertAdjacentHTML('beforeend', `<option value="${w}">Week ${w}</option>`);
-    current.setUTCDate(current.getUTCDate() + 7); // next Monday
+    current.setUTCDate(current.getUTCDate() + 7);
   }
 
-  /* days in month – unchanged */
   const daysInMonth = new Date(y, m, 0).getDate();
   daySel.innerHTML = '<option value="">All Days</option>';
   for (let d = 1; d <= daysInMonth; d++) {
     daySel.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`);
   }
 }
+
 /* ==================== INIT ==================== */
 document.addEventListener('DOMContentLoaded', () => {
   if (!ctx) return;
@@ -416,30 +356,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadData(initialConsumer);
   initFeedButton();
-  initEchoListener();
 
   ['filter-year', 'filter-month', 'filter-week', 'filter-day', 'filter-barangay', 'filter-consumer']
     .forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('change', () => {
-
         if (document.getElementById('filter-date')) return;
-        
         const sel = document.getElementById('filter-consumer')?.value || '';
         updateChartDisplay(sel);
       });
     });
 
-  /* ---------- dynamic week / day lists ---------- */
-  rebuildDayWeekOptions(); // initial fill
+  rebuildDayWeekOptions();
   document.getElementById('filter-year')?.addEventListener('change', rebuildDayWeekOptions);
   document.getElementById('filter-month')?.addEventListener('change', rebuildDayWeekOptions);
 });
-/* return ISO week (1-53) for a Manila date */
 
-window.allConsumerData = allConsumerData;   // expose for console
-
-
-/* make them globally available */
-window.addDataPoint   = addDataPoint;
+window.allConsumerData    = allConsumerData;
+window.addDataPoint       = addDataPoint;
 window.updateChartDisplay = updateChartDisplay;
