@@ -15,10 +15,10 @@
                 <p class="card-text">{{ $announcement->content }}</p>
 
                 @if(!empty($announcement->announcement_image))
-                    <img src="{{ asset('storage/' . $announcement->announcement_image) }}" 
-                         alt="Announcement Image" 
-                         class="img-fluid mb-2 shadow-sm rounded"
-                         style="width: 100%; height: auto;">
+                    <img src="{{ str_starts_with($announcement->announcement_image, 'http') ? $announcement->announcement_image : asset('storage/' . $announcement->announcement_image) }}" 
+                        alt="Announcement Image" 
+                        class="img-fluid mb-2 shadow-sm rounded"
+                        style="width: 100%; height: auto;">
                 @endif
 
                 @if($announcement->scheduled_date)
@@ -40,10 +40,10 @@
 
     @foreach($advisories as $advisory)
         <div class="card mb-4 shadow">
-            @if(!empty($advisory['image']))
-                <img src="{{ asset($advisory['image']) }}" 
-                     class="card-img-top shadow-sm" 
-                     alt="{{ $advisory['title'] }}">
+           @if(!empty($advisory['image']))
+                <img src="{{ str_starts_with($advisory['image'], 'http') ? $advisory['image'] : asset($advisory['image']) }}" 
+                    class="card-img-top shadow-sm" 
+                    alt="{{ $advisory['title'] }}">
             @endif
 
             <div class="card-body">
@@ -63,9 +63,9 @@
 
     @foreach($connectImages as $img)
         <div class="mb-4">
-            <img src="{{ asset($img) }}" 
-                 class="img-fluid border rounded shadow-lg"
-                 style="width: 100%; height: auto;">
+            <img src="{{ str_starts_with($img, 'http') ? $img : asset($img) }}" 
+                class="img-fluid border rounded shadow-lg"
+                style="width: 100%; height: auto;">
         </div>
     @endforeach
 
