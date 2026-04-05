@@ -120,7 +120,7 @@ function csrf() {
 
 <style scoped>
 .login-wrapper {
-  background-image: url('/images/water-tower-with-clouds-passing.webp');
+  background-image: url('/images/Flag_of_Magallanes,_Agusan_del_Norte.webp');
   background-size: cover;
   background-position: center;
   position: relative;
