@@ -30,7 +30,7 @@ RUN touch .env
 RUN composer install --optimize-autoloader --no-dev --no-scripts
 
 # Install Node deps and build frontend (resources/ is now available)
-RUN npm install && npm run build
+RUN npm ci && npm run build
 
 # Run composer scripts after full app is present
 RUN composer run-script post-autoload-dump || true
