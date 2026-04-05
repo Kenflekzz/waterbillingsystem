@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.error('Polling failed:', err);
                     setDisconnected();
                 });
-        }, 5000); // poll every 5 seconds
+        }, 3000); // poll every 5 seconds
     }
 
     /* ========================================================
