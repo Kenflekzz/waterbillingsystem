@@ -51,7 +51,7 @@
                     <input type="file" name="announcement_image"
                            class="form-control image-preview"
                            data-target="preview-announcement-image"
-                           data-existing="{{ !empty($homepage->announcement_image) ? asset('storage/'.$homepage->announcement_image) : '' }}">
+                           data-existing="{{ !empty($homepage->announcement_image) ? (str_starts_with($homepage->announcement_image, 'http') ? $homepage->announcement_image : asset('storage/'.$homepage->announcement_image)) : '' }}">
                 </div>
 
                 <!-- ADVISORIES -->
@@ -73,7 +73,7 @@
                         <input type="file" name="advisories[{{ $i }}][image]"
                                class="form-control image-preview"
                                data-target="preview-advisory-image-{{ $i }}"
-                               data-existing="{{ !empty($homepage->advisories[$i]['image']) ? asset($homepage->advisories[$i]['image']) : '' }}">
+                               data-existing="{{ !empty($homepage->advisories[$i]['image']) ? (str_starts_with($homepage->advisories[$i]['image'], 'http') ? $homepage->advisories[$i]['image'] : asset($homepage->advisories[$i]['image'])) : '' }}">
                     </div>
                 @endfor
 
@@ -92,7 +92,7 @@
                         <input type="file" name="connect_images[{{ $i }}]"
                                class="form-control image-preview"
                                data-target="preview-connect-image-{{ $i }}"
-                               data-existing="{{ !empty($homepage->connect_images[$i]) ? asset($homepage->connect_images[$i]) : '' }}">
+                               data-existing="{{ !empty($homepage->connect_images[$i]) ? (str_starts_with($homepage->connect_images[$i], 'http') ? $homepage->connect_images[$i] : asset($homepage->connect_images[$i])) : '' }}">
                     </div>
                 @endfor
 
@@ -154,7 +154,7 @@
                         {{ $homepage->announcement_text ?? 'Stay updated with the latest news.' }}
                     </p>
                     <img id="preview-announcement-image"
-                         src="{{ !empty($homepage->announcement_image) ? asset('storage/'.$homepage->announcement_image) : '' }}"
+                         src="{{ !empty($homepage->announcement_image) ? (str_starts_with($homepage->announcement_image, 'http') ? $homepage->announcement_image : asset('storage/'.$homepage->announcement_image)) : '' }}"
                          style="max-width:200px; {{ !empty($homepage->announcement_image) ? '' : 'display:none;' }}">
                 </section>
 
@@ -164,7 +164,9 @@
                     <div class="row">
                         @for($i=0; $i<3; $i++)
                             <div class="col-md-4 text-center">
-                                <img id="preview-advisory-image-{{ $i }}" src="{{ !empty($homepage->advisories[$i]['image']) ? asset($homepage->advisories[$i]['image']) : '' }}" style="max-width:100%; height:150px; object-fit:cover; {{ !empty($homepage->advisories[$i]['image']) ? '' : 'display:none;' }}">
+                                <img id="preview-advisory-image-{{ $i }}"
+                                     src="{{ !empty($homepage->advisories[$i]['image']) ? (str_starts_with($homepage->advisories[$i]['image'], 'http') ? $homepage->advisories[$i]['image'] : asset($homepage->advisories[$i]['image'])) : '' }}"
+                                     style="max-width:100%; height:150px; object-fit:cover; {{ !empty($homepage->advisories[$i]['image']) ? '' : 'display:none;' }}">
                                 <h5 id="preview-advisory-title-{{ $i }}" data-default="Advisory {{ $i+1 }}">
                                     {{ $homepage->advisories[$i]['title'] ?? 'Advisory '.($i+1) }}
                                 </h5>
@@ -183,7 +185,9 @@
                     </h3>
                     <div class="d-flex justify-content-center gap-3">
                         @for($i=0; $i<2; $i++)
-                            <img id="preview-connect-image-{{ $i }}" src="{{ !empty($homepage->connect_images[$i]) ? asset($homepage->connect_images[$i]) : '' }}" style="width:150px; height:100px; object-fit:cover; {{ !empty($homepage->connect_images[$i]) ? '' : 'display:none;' }}">
+                            <img id="preview-connect-image-{{ $i }}"
+                                 src="{{ !empty($homepage->connect_images[$i]) ? (str_starts_with($homepage->connect_images[$i], 'http') ? $homepage->connect_images[$i] : asset($homepage->connect_images[$i])) : '' }}"
+                                 style="width:150px; height:100px; object-fit:cover; {{ !empty($homepage->connect_images[$i]) ? '' : 'display:none;' }}">
                         @endfor
                     </div>
                 </section>
