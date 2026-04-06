@@ -4,8 +4,14 @@
     <title>Billing Statement</title>
     <link rel="icon" href="{{ asset($homepage->favicon ?? 'images/MAGALLANES_LOGO.png') }}" type="image/x-icon">
     @vite('resources/css/print.css')
+    <style>
+        @page {
+            size: 5.5in 8.5in portrait;
+            margin: 8mm;
+        }
+    </style>
 </head>
-<body onload="window.print()">
+<body   class="user-print" onload="window.print()">
 <div class="bill-container">
     <div class="header">
         <img src="{{ asset('/images/MAGALLANES_LOGO.png') }}" class="logo">

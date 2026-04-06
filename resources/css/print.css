@@ -203,3 +203,31 @@ th, td {
         print-color-adjust: exact !important;
     }
 }
+
+/* ===== USER SINGLE COPY PRINT ===== */
+@media print {
+
+    body.user-print .print-wrapper {
+        flex-direction: column !important;
+        align-items: center !important;
+        padding: 0 !important;
+        gap: 0 !important;
+    }
+
+    body.user-print .bill-wrapper {
+        width: 100% !important;
+        max-width: 5.5in;
+    }
+}
+
+@media screen {
+    body.user-print .print-wrapper {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    body.user-print .bill-wrapper {
+        width: 100%;
+        max-width: 5.5in;
+    }
+}
