@@ -5,10 +5,41 @@
     <link rel="icon" href="{{ asset($homepage->favicon ?? 'images/MAGALLANES_LOGO.png') }}" type="image/x-icon">
     @vite('resources/css/print.css')
     <style>
+       <style>
         @page {
-            size: 5.5in 8.5in portrait;
-            margin: 8mm;
+            size: auto;
+            margin: 5mm;
         }
+
+        body.user-print .print-wrapper {
+            display: block !important;
+            width: 100% !important;
+        }
+
+        body.user-print .bill-wrapper {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        body.user-print .bill-container {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        @media print {
+            body.user-print .print-wrapper {
+                display: block !important;
+                width: 100% !important;
+                padding: 0 !important;
+            }
+
+            body.user-print .bill-wrapper {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+        }
+    </style>
+
     </style>
 </head>
 <body   class="user-print" onload="window.print()">
