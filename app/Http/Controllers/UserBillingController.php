@@ -333,10 +333,11 @@ class UserBillingController extends Controller
     public function print($billingId)
     {
         $billing = UserBilling::with('user')->findOrFail($billingId);
+        $homepage = \App\Models\Homepage::first();
 
         $unpaidBills = UserBilling::where('user_id', $billing->user_id)
             ->where('id', '<', $billing->id)
-            ->where('status', 'Unpaid')
+            ->whereIn('status', ['unpaid', 'Unpaid', 'Overdue'])
             ->get();
 
         $arrears = $unpaidBills->sum('current_bill');
@@ -347,7 +348,7 @@ class UserBillingController extends Controller
 
         $arrearsBreakdown = $unpaidBills->map(function ($b) {
             return [
-                'billing_month' => $b->billing_month,
+                'billing_month' => $b->billing_date,
                 'current_bill'  => $b->current_bill,
             ];
         })->toArray();
@@ -355,7 +356,7 @@ class UserBillingController extends Controller
         $penaltyBreakdown = $unpaidBills->map(function ($b) {
             $daysLate = now()->diffInDays(\Carbon\Carbon::parse($b->due_date));
             return [
-                'billing_month'   => $b->billing_month,
+                'billing_month'   => $b->billing_date,
                 'due_date'        => $b->due_date,
                 'days_late'       => $daysLate,
                 'partial_penalty' => $daysLate * 0.005,
@@ -367,7 +368,8 @@ class UserBillingController extends Controller
             'arrears',
             'penalty',
             'arrearsBreakdown',
-            'penaltyBreakdown'
+            'penaltyBreakdown',
+            'homepage'
         ));
     }
 
