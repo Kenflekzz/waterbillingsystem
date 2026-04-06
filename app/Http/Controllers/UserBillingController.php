@@ -26,15 +26,15 @@ class UserBillingController extends Controller
      * ------------------------------------------------------------------ */
     private function secretKey(): string
     {
-        $mode = trim(env('PAYMONGO_MODE', 'test'));
+        $mode = trim($_ENV['PAYMONGO_MODE'] ?? 'test');
         
         $key = match($mode) {
-            'live' => env('PAYMONGO_LIVE_SECRET_KEY'),
-            default => env('PAYMONGO_SECRET_KEY'),
+            'live' => $_ENV['PAYMONGO_LIVE_SECRET_KEY'] ?? null,
+            default => $_ENV['PAYMONGO_SECRET_KEY'] ?? null,
         };
         
         if (empty($key)) {
-            throw new \Exception("PayMongo secret key empty for mode: {$mode}");
+            throw new \Exception("PayMongo secret key empty for mode: {$mode}. Check Render env vars.");
         }
         
         return $key;
