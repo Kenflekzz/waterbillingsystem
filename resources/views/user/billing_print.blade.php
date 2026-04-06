@@ -5,7 +5,7 @@
     <link rel="icon" href="{{ asset($homepage->favicon ?? 'images/MAGALLANES_LOGO.png') }}" type="image/x-icon">
     @vite('resources/css/print.css')
 </head>
-<body>
+<body onload="window.print()">
 <div class="bill-container">
     <div class="header">
         <img src="{{ asset('/images/MAGALLANES_LOGO.png') }}" class="logo">
