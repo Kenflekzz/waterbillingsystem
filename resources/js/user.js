@@ -15,15 +15,36 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => loader.classList.remove('show'), 300);
     };
 
-    // Optional: trigger loader on internal links
+    // ------------------------------
+    // Link Click Handler (with exclusions)
+    // ------------------------------
     document.addEventListener('click', (e) => {
         const link = e.target.closest('a');
         if (!link) return;
+        
         const href = link.getAttribute('href');
         if (!href || href.startsWith('#') || link.target === '_blank') return;
+        
+        // 🔴 FIX: Skip loader for print/download links
+        if (href.includes('/print') || href.includes('download') || link.classList.contains('no-loader')) {
+            return; // Allow normal navigation without loader
+        }
+        
         e.preventDefault();
         showLoader();
         setTimeout(() => window.location.href = href, 50);
+    });
+
+    // ------------------------------
+    // Form Submit Handler (with exclusions)
+    // ------------------------------
+    document.addEventListener('submit', (e) => {
+        const form = e.target;
+        // Skip loader for GCash forms (they use AJAX/modal)
+        if (form.classList.contains('gcash-form')) {
+            return;
+        }
+        showLoader();
     });
 
     // ------------------------------
@@ -41,20 +62,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const userLogoutForm = document.getElementById("user-logout-form");
-
+    // ------------------------------
+    // Logout Form
+    // ------------------------------
+    const userLogoutForm = document.getElementById("user-logout-form");  // ✅ ADD THIS LINE BACK
     if (userLogoutForm) {
-    
         userLogoutForm.addEventListener("submit", function(e) {
-            // Show loader immediately
             if (typeof window.showLoader === "function") window.showLoader();
-            // Allow form to submit normally after showing loader
         });
     }
 
-
-    // ------------------------------
-    // Notifications & My Reports (existing code)
-    // ------------------------------
-    // You can also move your usernotification.js code here
 });
