@@ -33,12 +33,11 @@ class UserController extends Controller
             ->orderByDesc('created_at')
             ->paginate(5);
 
-        // newest bill's arrears (admin already summed the past)
         $latestBill   = UserBilling::where('user_id', $user->id)
             ->latest()
             ->first();
 
-        $totalArrears = $latestBill ? $latestBill->arrears : 0;   // ← single value
+        $totalArrears = $latestBill ? $latestBill->arrears : 0;
         $hasHighArrears = $totalArrears >= 10000;
 
         return view('user.billing', compact('billings', 'user', 'totalArrears', 'hasHighArrears'));
@@ -46,7 +45,6 @@ class UserController extends Controller
 
     /**
      * Re-use the same arrears logic that admin uses.
-     * $upToDate = usually today, or the newest bill date
      */
     private function getUserArrears(int $userId): float
     {
@@ -61,9 +59,21 @@ class UserController extends Controller
      */
     public function printBill($id)
     {
-        // Load both user and client relationships
+        // Load user with their client relationship
         $billing = UserBilling::with(['user.client'])->findOrFail($id);
         $homepage = \App\Models\Homepage::first();
+
+        // Create a client object that the blade expects
+        // This matches the working blade's $billing->client usage
+        $client = $billing->user->client;
+        
+        // Add client data to billing as if it were a direct relationship
+        $billing->client = (object) [
+            'full_name' => $client->full_name ?? ($billing->user->first_name . ' ' . $billing->user->last_name),
+            'purok' => $client->purok ?? 'N/A',
+            'barangay' => $client->barangay ?? 'N/A',
+            'meter_no' => $client->meter_no ?? $billing->user->meter_number ?? 'N/A',
+        ];
 
         // Get unpaid previous bills for arrears calculation
         $unpaidBills = UserBilling::where('user_id', $billing->user_id)
@@ -132,8 +142,6 @@ class UserController extends Controller
     {
         $billing = UserBilling::findOrFail($id);
 
-        // In production, connect to PayMaya or GCash API here.
-        // For now, just simulate successful payment.
         $billing->status = 'Paid';
         $billing->payment_method = $request->payment_method;
         $billing->payment_reference = 'PM-' . strtoupper(uniqid());
