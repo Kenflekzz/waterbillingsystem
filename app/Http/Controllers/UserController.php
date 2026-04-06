@@ -61,9 +61,46 @@ private function getUserArrears(int $userId): float
      */
     public function printBill($id)
     {
-        $billing = UserBilling::findOrFail($id);
+        $billing = UserBilling::with('user')->findOrFail($id);
+        $homepage = \App\Models\Homepage::first();
 
-        $pdf = Pdf::loadView('user.billing_print', compact('billing'));
+        // Calculate arrears from unpaid previous bills
+        $unpaidBills = UserBilling::where('user_id', $billing->user_id)
+            ->where('id', '<', $billing->id)
+            ->whereIn('status', ['unpaid', 'Unpaid', 'Overdue'])
+            ->get();
+
+        $arrears = $unpaidBills->sum('current_bill');
+        
+        // Calculate penalty (₱0.005 per day late)
+        $penalty = $unpaidBills->sum(function ($b) {
+            $dueDate = \Carbon\Carbon::parse($b->due_date);
+            $daysLate = now()->diffInDays($dueDate, false);
+            return $daysLate > 0 ? $daysLate * 0.005 : 0;
+        });
+
+        // Build breakdown arrays
+        $arrearsBreakdown = $unpaidBills->map(fn($b) => [
+            'billing_month' => $b->billing_date,
+            'current_bill'  => $b->current_bill,
+        ])->toArray();
+
+        $penaltyBreakdown = $unpaidBills->map(function ($b) {
+            $dueDate = \Carbon\Carbon::parse($b->due_date);
+            $daysLate = max(0, now()->diffInDays($dueDate, false));
+            return [
+                'billing_month'   => $b->billing_date,
+                'due_date'        => $b->due_date,
+                'days_late'       => $daysLate,
+                'partial_penalty' => $daysLate * 0.005,
+            ];
+        })->toArray();
+
+        $pdf = Pdf::loadView('user.billing_print', compact(
+            'billing', 'homepage', 'arrears', 'penalty', 
+            'arrearsBreakdown', 'penaltyBreakdown'
+        ));
+
         return $pdf->download('Billing_Statement_' . $billing->id . '.pdf');
     }
 
