@@ -5,7 +5,7 @@
     <link rel="icon" href="{{ asset($homepage->favicon ?? 'images/MAGALLANES_LOGO.png') }}" type="image/x-icon">
     @vite('resources/css/print.css')
 </head>
-<body onload="window.print()">
+<body>
 <div class="bill-container">
 
     <!-- Header -->
@@ -31,8 +31,8 @@
         <tr>
             <td><strong>NAME:</strong> {{ strtoupper($billing->user->first_name . ' ' . $billing->user->last_name) }}</td>
             <td><strong>PUROK/BRGY:</strong> 
-                {{ strtoupper($billing->user->purok ?? 'N/A') }},
-                {{ strtoupper($billing->user->barangay ?? 'N/A') }}
+                {{ strtoupper($billing->user->client->purok ?? 'N/A') }},
+                {{ strtoupper($billing->user->client->barangay ?? 'N/A') }}
             </td>
         </tr>
     </table>
@@ -49,7 +49,7 @@
             <td>{{ \Carbon\Carbon::parse($billing->billing_date)->format('M-Y') }}</td>
             <td>{{ $billing->created_at->format('M d, Y') }}</td>
             <td>-</td>
-            <td>{{ $billing->user->meter_no }}</td>
+            <td>{{ $billing->user->meter_number ?? $billing->user->client->meter_no ?? 'N/A' }}</td>
         </tr>
 
         <tr>
@@ -66,7 +66,7 @@
         </tr>
     </table>
 
-    <!-- Billing Computation Table -->
+    <!-- MAIN BILLING TABLE -->
     <table>
         <tr>
             <td><strong>CURRENT BILLING</strong></td>
@@ -82,26 +82,25 @@
         </tr>
         <tr>
             <td><strong>MAINTENANCE COST</strong></td>
-            <td class="right-align">₱{{ number_format($billing->maintenance_cost,2) }}</td>
+            <td class="right-align">₱{{ number_format($billing->maintenance_cost ?? 0,2) }}</td>
         </tr>
         <tr>
             <td><strong>INSTALLATION COST</strong></td>
-            <td class="right-align">₱{{ number_format($billing->installation_fee,2) }}</td>
+            <td class="right-align">₱{{ number_format($billing->installation_fee ?? 0,2) }}</td>
         </tr>
-        <tr>
-            <td><strong>EXCESS HOSE</strong></td>
-            <td class="right-align">₱0.00</td>
-        </tr>
-        <tr>
+        <tr class="highlight">
             <td class="highlight">TOTAL AMOUNT DUE</td>
             <td class="right-align">
-                <strong>
-                    ₱{{ number_format(
-                        $billing->current_bill + $arrears + $penalty +
-                        $billing->maintenance_cost + $billing->installation_fee,
-                    2) }}
-                </strong>
+                <strong>₱{{ number_format($totalAmount,2) }}</strong>
             </td>
+        </tr>
+    </table>
+
+    <!-- SEPARATE EXCESS HOSE SECTION -->
+    <table class="excess-hose-table">
+        <tr>
+            <td><strong>EXCESS HOSE</strong></td>
+            <td class="right-align">₱{{ number_format($billing->excess_hose ?? 0, 2) }}</td>
         </tr>
     </table>
 
@@ -122,31 +121,35 @@
 
     <!-- Penalty Breakdown -->
     @if(!empty($penaltyBreakdown))
-        <table>
+        <table style="border: 2px solid #000; margin-top: 10px; width: 100%; border-collapse: collapse;">
             <tr class="section-title">
-                <td colspan="4">Breakdown of Penalty</td>
+                <td colspan="4" style="background-color: #f4c6c6; font-weight: bold; text-align: center; border: 1px solid #000; padding: 4px;">Breakdown of Penalty</td>
             </tr>
-            <tr>
-                <th>Billing Month</th>
-                <th>Due Date</th>
-                <th>Days Late</th>
-                <th class="right-align">Partial Penalty (₱)</th>
+            <tr style="background-color: #eee;">
+                <th style="border: 1px solid #000; padding: 4px;">Billing Month</th>
+                <th style="border: 1px solid #000; padding: 4px;">Due Date</th>
+                <th style="border: 1px solid #000; padding: 4px;">Days Late</th>
+                <th style="border: 1px solid #000; padding: 4px;" class="right-align">Partial Penalty (₱)</th>
             </tr>
             @foreach($penaltyBreakdown as $item)
                 <tr>
-                    <td>{{ \Carbon\Carbon::parse($item['billing_month'])->format('F Y') }}</td>
-                    <td>{{ \Carbon\Carbon::parse($item['due_date'])->format('M d, Y') }}</td>
-                    <td>{{ $item['days_late'] }}</td>
-                    <td class="right-align">₱{{ number_format($item['partial_penalty'],2) }}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{{ \Carbon\Carbon::parse($item['billing_month'])->format('M d, Y') }}</td>
+                    <td style="border: 1px solid #000; padding: 4px;">{{ \Carbon\Carbon::parse($item['due_date'])->format('M d, Y') }}</td>
+                    <td style="border: 1px solid #000; padding: 4px; text-align: center;">{{ $item['days_late'] }}</td>
+                    <td style="border: 1px solid #000; padding: 4px;" class="right-align">₱{{ number_format($item['partial_penalty'], 2) }}</td>
                 </tr>
             @endforeach
+            <tr style="font-weight: bold; background-color: #f9f9f9;">
+                <td colspan="3" style="border: 1px solid #000; padding: 4px; text-align: right;">Total Penalty:</td>
+                <td style="border: 1px solid #000; padding: 4px;" class="right-align">₱{{ number_format($penalty, 2) }}</td>
+            </tr>
         </table>
     @endif
 
     <!-- Notes -->
     <div class="note-section">
         <p><strong>1.</strong> Two (2) Consecutive UNPAID Billings follow the <span class="highlight">DISCONNECTION</span>.</p>
-        <p><strong>2.</strong> Please settle before: <strong>{{ \Carbon\Carbon::parse($billing->billing_date)->addDays(14)->format('M d, Y') }}</strong></p>
+        <p><strong>2.</strong> This account must be settled on or before: <strong>{{ \Carbon\Carbon::parse($billing->due_date)->format('M d, Y') }}</strong> to avoid penalty charges.</p>
         <p><strong>3.</strong> Water service will be disconnected without prior notice.</p>
     </div>
 
@@ -164,7 +167,7 @@
         </tr>
     </table>
 
-    <div class="consumer-copy">CONSUMER'S COPY</div>
+    <div class="consumer-copy">{{ $copyLabel }}</div>
 </div>
 </body>
 </html>
