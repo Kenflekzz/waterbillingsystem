@@ -26,29 +26,15 @@ class UserBillingController extends Controller
      * ------------------------------------------------------------------ */
     private function secretKey(): string
     {
-        // Try all possible sources
-        $sources = [
-            'getenv' => getenv('PAYMONGO_SECRET_KEY'),
-            '_ENV' => $_ENV['PAYMONGO_SECRET_KEY'] ?? null,
-            '_SERVER' => $_SERVER['PAYMONGO_SECRET_KEY'] ?? null,
-            'env()' => env('PAYMONGO_SECRET_KEY'),
-            'config' => config('paymongo.test_secret'),
-        ];
+        $mode = trim(env('PAYMONGO_MODE', 'test'));
         
-        // Find first non-empty value
-        $key = null;
-        foreach ($sources as $source => $value) {
-            if (!empty($value) && $value !== false) {
-                $key = $value;
-                Log::info("PayMongo key found in: {$source}");
-                break;
-            }
-        }
+        $key = match($mode) {
+            'live' => env('PAYMONGO_LIVE_SECRET_KEY'),
+            default => env('PAYMONGO_SECRET_KEY'),
+        };
         
-        // EMERGENCY FALLBACK - Your actual test key
         if (empty($key)) {
-            $key = 'sk_test_fZykG91LGjdZbZpcVj4JMJHj';
-            Log::warning('PayMongo using hardcoded fallback key - fix env vars!');
+            throw new \Exception("PayMongo secret key empty for mode: {$mode}");
         }
         
         return $key;
