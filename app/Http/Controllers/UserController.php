@@ -59,46 +59,45 @@ class UserController extends Controller
      */
     public function printBill($id)
     {
-        // Load user with their client relationship
         $billing = UserBilling::with(['user.client'])->findOrFail($id);
         $homepage = \App\Models\Homepage::first();
 
-        // Create a client object that the blade expects
-        // This matches the working blade's $billing->client usage
         $client = $billing->user->client;
         
-        // Add client data to billing as if it were a direct relationship
         $billing->client = (object) [
             'full_name' => $client->full_name ?? ($billing->user->first_name . ' ' . $billing->user->last_name),
-            'purok' => $client->purok ?? 'N/A',
-            'barangay' => $client->barangay ?? 'N/A',
-            'meter_no' => $client->meter_no ?? $billing->user->meter_number ?? 'N/A',
+            'purok'     => $client->purok ?? 'N/A',
+            'barangay'  => $client->barangay ?? 'N/A',
+            'meter_no'  => $client->meter_no ?? $billing->user->meter_number ?? 'N/A',
         ];
 
-        // Get unpaid previous bills for arrears calculation
+        // Add missing fields that admin billing has
+        $billing->reading_date    = $billing->reading_date ?? $billing->billing_date;
+        $billing->previous_reading = $billing->previous_reading ?? 0;
+        $billing->present_reading  = $billing->present_reading ?? 0;
+        $billing->maintenance_cost = $billing->maintenance_cost ?? 0;
+        $billing->installation_fee = $billing->installation_fee ?? 0;
+        $billing->excess_hose      = $billing->excess_hose ?? 0;
+
         $unpaidBills = UserBilling::where('user_id', $billing->user_id)
             ->where('id', '<', $billing->id)
             ->whereIn('status', ['unpaid', 'Unpaid', 'Overdue'])
             ->get();
 
-        // Calculate total arrears
         $arrears = $unpaidBills->sum('current_bill');
 
-        // Calculate penalty (₱0.005 per day late, only if actually late)
         $penalty = $unpaidBills->sum(function ($b) {
-            $dueDate = \Carbon\Carbon::parse($b->due_date);
+            $dueDate  = \Carbon\Carbon::parse($b->due_date);
             $daysLate = now()->diffInDays($dueDate, false);
             return $daysLate > 0 ? $daysLate * 0.005 : 0;
         });
 
-        // Calculate total amount due
-        $totalAmount = $billing->current_bill 
-            + $arrears 
-            + $penalty 
-            + ($billing->maintenance_cost ?? 0) 
-            + ($billing->installation_fee ?? 0);
+        $totalAmount = $billing->current_bill
+            + $arrears
+            + $penalty
+            + $billing->maintenance_cost
+            + $billing->installation_fee;
 
-        // Build arrears breakdown for the table
         $arrearsBreakdown = $unpaidBills->map(function ($b) {
             return [
                 'billing_month' => $b->billing_date,
@@ -106,9 +105,8 @@ class UserController extends Controller
             ];
         })->toArray();
 
-        // Build penalty breakdown for the table
         $penaltyBreakdown = $unpaidBills->map(function ($b) {
-            $dueDate = \Carbon\Carbon::parse($b->due_date);
+            $dueDate  = \Carbon\Carbon::parse($b->due_date);
             $daysLate = max(0, now()->diffInDays($dueDate, false));
             return [
                 'billing_month'   => $b->billing_date,
@@ -118,10 +116,10 @@ class UserController extends Controller
             ];
         })->toArray();
 
-        // For "CONSUMER'S COPY" / "OFFICE COPY" labels
         $copyLabel = "CONSUMER'S COPY";
 
-        $pdf = Pdf::loadView('user.billing_print', compact(
+        // Return view instead of PDF download
+        return view('user.billing_print', compact(
             'billing',
             'homepage',
             'arrears',
@@ -131,8 +129,6 @@ class UserController extends Controller
             'penaltyBreakdown',
             'copyLabel'
         ));
-
-        return $pdf->download('Billing_Statement_' . $billing->id . '.pdf');
     }
 
     /**
