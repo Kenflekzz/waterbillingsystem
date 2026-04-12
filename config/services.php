@@ -38,7 +38,7 @@ return [
     'mocean' => [
         'token'  => env('MOCEAN_API_TOKEN'),
         'sender' => env('MOCEAN_SENDER'),
-        'url'    => 'https://rest.moceanapi.com/rest/2/sms',
+        'url'    => env('MOCEAN_URL', 'https://rest.moceanapi.com/rest/2/sms'),
     ],
 
 
