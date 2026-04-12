@@ -33,16 +33,43 @@ class SmsService
             $resp = Http::asForm()->post($this->url, $payload);
             $data = $resp->json();
 
-            $status = (int) ($data['messages'][0]['status'] ?? 2);
+            // Log full response for debugging
+            Log::debug('Mocean full response', [
+                'http_status' => $resp->status(),
+                'body' => $data,
+            ]);
+
+            // Check if response has expected structure
+            if (!isset($data['messages']) || !is_array($data['messages']) || empty($data['messages'])) {
+                return [
+                    'status' => 'failed', 
+                    'error' => 'Invalid Mocean response: ' . json_encode($data)
+                ];
+            }
+
+            $msg = $data['messages'][0];
+            $status = (int) ($msg['status'] ?? 2);
+            $msgId = $msg['msgid'] ?? 'no-id';
+            $errMsg = $msg['err_msg'] ?? null;
+
+            // Return detailed error info
+            if ($status !== 0 && $status !== 1) {
+                return [
+                    'status' => 'failed',
+                    'error_code' => $status,
+                    'error_message' => $errMsg ?? "Unknown error (code: {$status})",
+                    'mocean_response' => $msg,
+                ];
+            }
 
             return match ($status) {
-                0 => ['status' => 'sent', 'id' => $data['messages'][0]['msgid']],
-                1 => ['status' => 'pending', 'id' => $data['messages'][0]['msgid']],
-                default => ['status' => 'failed', 'error' => 'Mocean error'],
+                0 => ['status' => 'sent', 'id' => $msgId],
+                1 => ['status' => 'pending', 'id' => $msgId],
+                default => ['status' => 'failed', 'error' => 'Unexpected status'],
             };
 
         } catch (\Exception $e) {
-            Log::error('SMS failed', ['error' => $e->getMessage()]);
+            Log::error('SMS exception', ['error' => $e->getMessage()]);
             return ['status' => 'failed', 'error' => $e->getMessage()];
         }
     }
