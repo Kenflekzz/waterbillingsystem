@@ -117,7 +117,7 @@
                                 <form action="{{ route('admin.clients.destroy', $client->id) }}" method="POST" class="d-inline delete-client-form">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete" onclick="return confirm('Are you sure you want to delete this client?');">
+                                    <button type="button" class="btn btn-sm btn-danger" title="Delete">
                                         <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </form>
