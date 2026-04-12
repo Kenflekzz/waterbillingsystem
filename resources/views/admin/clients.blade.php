@@ -257,6 +257,37 @@
                                 </form>
                             </div>
                         </div>
+                        {{-- View Modal --}}
+                        <div class="modal fade" id="viewClientModal{{ $client->id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">View Client</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <table class="table table-bordered">
+                                            <tr><th>Full Name</th><td>{{ $client->full_name }}</td></tr>
+                                            <tr><th>Meter No.</th><td>{{ $client->meter_no }}</td></tr>
+                                            <tr><th>Old Meter No.</th><td>{{ $client->old_meter_no ?? '—' }}</td></tr>
+                                            <tr><th>Group</th><td>{{ $client->group }}</td></tr>
+                                            <tr><th>Barangay</th><td>{{ $client->barangay }}</td></tr>
+                                            <tr><th>Purok</th><td>{{ $client->purok }}</td></tr>
+                                            <tr><th>Contact Number</th><td>{{ $client->contact_number }}</td></tr>
+                                            <tr><th>Date Cut</th><td>{{ $client->date_cut ?? '—' }}</td></tr>
+                                            <tr><th>Installation Date</th><td>{{ $client->installation_date }}</td></tr>
+                                            <tr><th>Meter Series</th><td>{{ $client->meter_series }}</td></tr>
+                                            <tr><th>Meter Status</th><td>{{ ucfirst($client->meter_status ?? 'old') }}</td></tr>
+                                            <tr><th>Replacement Date</th><td>{{ $client->replacement_date ? \Carbon\Carbon::parse($client->replacement_date)->format('M d, Y') : '—' }}</td></tr>
+                                            <tr><th>Status</th><td>{{ $client->status }}</td></tr>
+                                        </table>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     @endforeach
                 </tbody>
             </table>
