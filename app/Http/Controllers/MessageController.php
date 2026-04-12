@@ -133,8 +133,8 @@ class MessageController extends Controller
             case 'pending':
                 return back()->with('info', 'Message queued (pending) – ID: ' . ($response['id'] ?? 'N/A'));
             default:
-                $errorMsg = $response['error'] ?? 'Unknown Mocean error';
-                return back()->with('error', "Failed to send message: {$errorMsg}");
+               $errorMsg = $response['mocean_err_msg'] ?? $response['error'] ?? json_encode($response['mocean_raw'] ?? $response);
+               return back()->with('error', "Failed to send message: {$errorMsg}");
         }
     }
 }
