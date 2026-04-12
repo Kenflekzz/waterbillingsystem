@@ -15,21 +15,24 @@ class SmsService
         $this->token  = config('mocean.token');
         $this->sender = config('mocean.sender');
         $this->url    = config('mocean.url');
-        
-        // Log config values on construct
-        Log::debug('SmsService config', [
-            'token_set' => !empty($this->token),
-            'token_preview' => substr($this->token, 0, 10) . '...',
-            'sender' => $this->sender,
-            'url' => $this->url,
-        ]);
     }
 
     public function sendSMS(string $number, string $message): array
     {
+        // Format number: remove + and ensure it's in international format
         $number = ltrim($number, '+');
+        
+        // Ensure message is not empty and within limits
+        if (empty($message)) {
+            return ['status' => 'failed', 'error' => 'Message is empty'];
+        }
+        
+        if (strlen($message) > 1600) {
+            return ['status' => 'failed', 'error' => 'Message too long (max 1600 chars)'];
+        }
 
-        $payload = [
+        // Build query string manually to ensure proper encoding
+        $params = [
             'mocean-api-token'   => $this->token,
             'mocean-from'        => $this->sender,
             'mocean-to'          => $number,
@@ -37,33 +40,29 @@ class SmsService
             'mocean-resp-format' => 'json',
         ];
 
-        // DEBUG: Check each parameter
-        foreach ($payload as $key => $value) {
-            if (empty($value)) {
-                Log::error("Empty Mocean parameter: {$key}");
-            }
-        }
-
-        Log::debug('Mocean full payload', $payload);
-
+        // Use query parameters instead of form body (GET request)
+        $url = $this->url . '?' . http_build_query($params);
+        
         try {
-            $resp = Http::asForm()->post($this->url, $payload);
+            $resp = Http::get($url);
             $body = $resp->body();
-
-            Log::info('MOCEAN DEBUG', [
-                'http_status' => $resp->status(),
-                'body' => $body,
-                'payload_sent' => $payload,
-            ]);
 
             $data = json_decode($body, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                return ['status' => 'failed', 'error' => 'Non-JSON: ' . $body];
+                return ['status' => 'failed', 'error' => 'Invalid response: ' . substr($body, 0, 200)];
             }
 
-            if (empty($data['messages'])) {
-                return ['status' => 'failed', 'error' => 'No messages', 'raw' => $data];
+            // Check for API-level errors in response
+            if (isset($data['status']) && $data['status'] != 0) {
+                return [
+                    'status' => 'failed',
+                    'error' => $data['err_msg'] ?? 'API error code: ' . $data['status'],
+                ];
+            }
+
+            if (empty($data['messages']) || !isset($data['messages'][0])) {
+                return ['status' => 'failed', 'error' => 'No message response', 'raw' => $data];
             }
 
             $msg = $data['messages'][0];
@@ -72,15 +71,13 @@ class SmsService
             if ($status !== 0) {
                 return [
                     'status' => 'failed',
-                    'mocean_err_msg' => $msg['err_msg'] ?? 'Code: ' . $status,
-                    'mocean_raw' => $msg,
+                    'error' => $msg['err_msg'] ?? 'Failed with status: ' . $status,
                 ];
             }
 
             return ['status' => 'sent', 'id' => $msg['msgid']];
 
         } catch (\Exception $e) {
-            Log::error('SMS exception', ['error' => $e->getMessage()]);
             return ['status' => 'failed', 'error' => $e->getMessage()];
         }
     }
