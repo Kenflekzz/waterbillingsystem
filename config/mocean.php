@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'token'  => 'apit-57YcVAhYrpXDp2r8PEpOOMaNsvTeNUxG-SlIBL',
-    'sender' => 'MYAPP',
-    'url'    => 'https://rest.moceanapi.com/rest/2/sms',  // ✅ No space
+    'token'  => env('MOCEAN_API_TOKEN', 'apit-57YcVAhYrpXDp2r8PEpOOMaNsvTeNUxG-SlIBL'),
+    'sender' => env('MOCEAN_SENDER', 'MYAPP'),
+    'url'    => env('MOCEAN_URL', 'https://rest.moceanapi.com/rest/2/sms'),
 ];
