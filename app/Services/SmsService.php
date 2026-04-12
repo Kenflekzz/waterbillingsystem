@@ -12,33 +12,13 @@ class SmsService
 
     public function __construct()
     {
-        // Try config first, then env(), then hardcoded fallback
-        $this->token  = $this->getConfigValue('MOCEAN_API_TOKEN', 'services.mocean.token');
-        $this->sender = $this->getConfigValue('MOCEAN_SENDER', 'services.mocean.sender', 'MYAPP');
-        $this->url    = $this->getConfigValue('MOCEAN_URL', 'services.mocean.url', 'https://rest.moceanapi.com/rest/2/sms');
+        $this->token  = config('services.mocean.token');
+        $this->sender = config('services.mocean.sender', 'MYAPP');
+        $this->url    = config('services.mocean.url', 'https://rest.moceanapi.com/rest/2/sms');
 
-        Log::info('SMS Service initialized', [
-            'token_length' => strlen($this->token),
-            'sender' => $this->sender,
-            'url' => $this->url,
-        ]);
-    }
-
-    private function getConfigValue(string $envKey, string $configKey, ?string $default = null): string
-    {
-        // Priority: $_ENV > env() > config() > default
-        $value = $_ENV[$envKey] ?? 
-                 getenv($envKey) ?: 
-                 env($envKey) ?: 
-                 config($configKey) ?: 
-                 $default;
-        
-        if (empty($value)) {
-            Log::error("Config missing: {$envKey} / {$configKey}");
-            throw new \RuntimeException("Missing required config: {$envKey}");
+        if (empty($this->token)) {
+            throw new \RuntimeException('MOCEAN_API_TOKEN not set');
         }
-        
-        return $value;
     }
 
     public function sendSMS(string $number, string $message): array
@@ -53,32 +33,20 @@ class SmsService
             'mocean-resp-format' => 'json',
         ];
 
-        Log::debug('Mocean request', $payload);
-
         try {
             $resp = Http::asForm()->post($this->url, $payload);
-
-            Log::debug('Mocean response', [
-                'status' => $resp->status(),
-                'body' => $resp->body(),
-            ]);
-
             $data = $resp->json();
-            
-            if (!isset($data['messages'][0])) {
-                return ['status' => 'failed', 'error' => 'Invalid response from Mocean'];
-            }
 
-            $msg = $data['messages'][0];
-            
-            return match ((int)($msg['status'] ?? 2)) {
-                0 => ['status' => 'sent', 'id' => $msg['msgid'] ?? 'unknown'],
-                1 => ['status' => 'pending', 'id' => $msg['msgid'] ?? 'unknown'],
-                default => ['status' => 'failed', 'error' => $msg['err_msg'] ?? "Error code {$msg['status']}"],
+            $status = (int) ($data['messages'][0]['status'] ?? 2);
+
+            return match ($status) {
+                0 => ['status' => 'sent', 'id' => $data['messages'][0]['msgid']],
+                1 => ['status' => 'pending', 'id' => $data['messages'][0]['msgid']],
+                default => ['status' => 'failed', 'error' => 'Mocean error'],
             };
 
         } catch (\Exception $e) {
-            Log::error('SMS send failed', ['error' => $e->getMessage()]);
+            Log::error('SMS failed', ['error' => $e->getMessage()]);
             return ['status' => 'failed', 'error' => $e->getMessage()];
         }
     }
