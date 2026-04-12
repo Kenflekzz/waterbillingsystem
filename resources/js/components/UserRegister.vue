@@ -1,5 +1,6 @@
 <template>
   <div class="register-container">
+    <div class="bg-overlay"></div>
     <div class="form-wrapper">
       <h2 class="text-center mb-4">User Registration</h2>
 
@@ -175,6 +176,7 @@ export default {
   background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)),
               url('/images/1000019368.jpg') no-repeat center center;
   background-size: cover;
+  position: relative;
 }
 
 .form-wrapper {
@@ -280,5 +282,22 @@ p a {
 }
 p a:hover {
   text-decoration: underline;
+}
+
+.bg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 0;
+}
+
+.form-wrapper {
+  position: relative;
+  z-index: 1;
+  /* rest of existing styles */
 }
 </style>
