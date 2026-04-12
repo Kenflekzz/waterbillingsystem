@@ -1,6 +1,5 @@
 <template>
   <div class="register-container">
-    <div class="bg-overlay"></div>
     <div class="form-wrapper">
       <h2 class="text-center mb-4">User Registration</h2>
 
@@ -177,6 +176,18 @@ export default {
               url('/images/1000019368.jpg') no-repeat center center;
   background-size: cover;
   position: relative;
+}
+
+.register-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 0;
 }
 
 .form-wrapper {
