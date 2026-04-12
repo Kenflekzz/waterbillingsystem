@@ -12,13 +12,12 @@ class SmsService
 
     public function __construct()
     {
-        $this->token  = config('services.mocean.token');
-        $this->sender = config('services.mocean.sender', 'MYAPP');
-        $this->url    = config('services.mocean.url', 'https://rest.moceanapi.com/rest/2/sms');
+        // Read directly from $_ENV where Render stores secrets
+        $this->token  = $_ENV['MOCEAN_API_TOKEN'] ?? throw new \RuntimeException('MOCEAN_API_TOKEN missing');
+        $this->sender = $_ENV['MOCEAN_SENDER'] ?? 'MYAPP';
+        $this->url    = $_ENV['MOCEAN_URL'] ?? 'https://rest.moceanapi.com/rest/2/sms';
 
-        if (empty($this->token)) {
-            throw new \RuntimeException('MOCEAN_API_TOKEN not set');
-        }
+        Log::info('SMS Service loaded', ['token_preview' => substr($this->token, 0, 10)]);
     }
 
     public function sendSMS(string $number, string $message): array
