@@ -31,45 +31,41 @@ class SmsService
 
         try {
             $resp = Http::asForm()->post($this->url, $payload);
-            $data = $resp->json();
-
-            // Log full response for debugging
-            Log::debug('Mocean full response', [
-                'http_status' => $resp->status(),
-                'body' => $data,
+            $body = $resp->body();
+            
+            // Log raw response
+            Log::debug('Mocean raw', [
+                'status' => $resp->status(),
+                'body' => $body,
             ]);
 
-            // Check if response has expected structure
-            if (!isset($data['messages']) || !is_array($data['messages']) || empty($data['messages'])) {
-                return [
-                    'status' => 'failed', 
-                    'error' => 'Invalid Mocean response: ' . json_encode($data)
-                ];
+            $data = json_decode($body, true);
+
+            // If not JSON, return raw body
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return ['status' => 'failed', 'error' => 'Non-JSON response: ' . $body];
+            }
+
+            // If no messages array
+            if (empty($data['messages'])) {
+                return ['status' => 'failed', 'error' => 'No messages in response', 'raw' => $data];
             }
 
             $msg = $data['messages'][0];
-            $status = (int) ($msg['status'] ?? 2);
-            $msgId = $msg['msgid'] ?? 'no-id';
-            $errMsg = $msg['err_msg'] ?? null;
-
-            // Return detailed error info
-            if ($status !== 0 && $status !== 1) {
+            
+            // Return full details for any non-success
+            if (($msg['status'] ?? 2) != 0) {
                 return [
                     'status' => 'failed',
-                    'error_code' => $status,
-                    'error_message' => $errMsg ?? "Unknown error (code: {$status})",
-                    'mocean_response' => $msg,
+                    'mocean_status' => $msg['status'] ?? 'missing',
+                    'mocean_err_msg' => $msg['err_msg'] ?? 'No error message',
+                    'mocean_raw' => $msg,
                 ];
             }
 
-            return match ($status) {
-                0 => ['status' => 'sent', 'id' => $msgId],
-                1 => ['status' => 'pending', 'id' => $msgId],
-                default => ['status' => 'failed', 'error' => 'Unexpected status'],
-            };
+            return ['status' => 'sent', 'id' => $msg['msgid']];
 
         } catch (\Exception $e) {
-            Log::error('SMS exception', ['error' => $e->getMessage()]);
             return ['status' => 'failed', 'error' => $e->getMessage()];
         }
     }
