@@ -49,10 +49,11 @@ class SmsService
         try {
             $resp = Http::asForm()->post($this->url, $payload);
             $body = $resp->body();
-            
-            Log::debug('Mocean raw response', [
+
+            Log::info('MOCEAN DEBUG', [
                 'http_status' => $resp->status(),
                 'body' => $body,
+                'payload_sent' => $payload,
             ]);
 
             $data = json_decode($body, true);
