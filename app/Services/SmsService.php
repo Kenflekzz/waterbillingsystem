@@ -33,10 +33,11 @@ class SmsService
 
         // Build query string manually to ensure proper encoding
         $params = [
-            'mocean-api-token' => config('mocean.token'),
-            'to'               => $number,
-            'from'             => $this->sender,
-            'text'             => $message,
+            'mocean-api-token'   => config('mocean.token'),
+            'mocean-from'        => $this->sender,
+            'mocean-to'          => $number,
+            'mocean-text'        => $message,
+            'mocean-resp-format' => 'json',
         ];
 
         // Use query parameters instead of form body (GET request)
