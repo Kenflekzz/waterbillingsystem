@@ -15,6 +15,14 @@ class SmsService
         $this->token  = config('mocean.token');
         $this->sender = config('mocean.sender');
         $this->url    = config('mocean.url');
+        
+        // Log config values on construct
+        Log::debug('SmsService config', [
+            'token_set' => !empty($this->token),
+            'token_preview' => substr($this->token, 0, 10) . '...',
+            'sender' => $this->sender,
+            'url' => $this->url,
+        ]);
     }
 
     public function sendSMS(string $number, string $message): array
@@ -29,36 +37,41 @@ class SmsService
             'mocean-resp-format' => 'json',
         ];
 
+        // DEBUG: Check each parameter
+        foreach ($payload as $key => $value) {
+            if (empty($value)) {
+                Log::error("Empty Mocean parameter: {$key}");
+            }
+        }
+
+        Log::debug('Mocean full payload', $payload);
+
         try {
             $resp = Http::asForm()->post($this->url, $payload);
             $body = $resp->body();
             
-            // Log raw response
-            Log::debug('Mocean raw', [
-                'status' => $resp->status(),
+            Log::debug('Mocean raw response', [
+                'http_status' => $resp->status(),
                 'body' => $body,
             ]);
 
             $data = json_decode($body, true);
 
-            // If not JSON, return raw body
             if (json_last_error() !== JSON_ERROR_NONE) {
-                return ['status' => 'failed', 'error' => 'Non-JSON response: ' . $body];
+                return ['status' => 'failed', 'error' => 'Non-JSON: ' . $body];
             }
 
-            // If no messages array
             if (empty($data['messages'])) {
-                return ['status' => 'failed', 'error' => 'No messages in response', 'raw' => $data];
+                return ['status' => 'failed', 'error' => 'No messages', 'raw' => $data];
             }
 
             $msg = $data['messages'][0];
-            
-            // Return full details for any non-success
-            if (($msg['status'] ?? 2) != 0) {
+            $status = (int) ($msg['status'] ?? 2);
+
+            if ($status !== 0) {
                 return [
                     'status' => 'failed',
-                    'mocean_status' => $msg['status'] ?? 'missing',
-                    'mocean_err_msg' => $msg['err_msg'] ?? 'No error message',
+                    'mocean_err_msg' => $msg['err_msg'] ?? 'Code: ' . $status,
                     'mocean_raw' => $msg,
                 ];
             }
@@ -66,6 +79,7 @@ class SmsService
             return ['status' => 'sent', 'id' => $msg['msgid']];
 
         } catch (\Exception $e) {
+            Log::error('SMS exception', ['error' => $e->getMessage()]);
             return ['status' => 'failed', 'error' => $e->getMessage()];
         }
     }
