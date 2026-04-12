@@ -6,73 +6,80 @@ use Illuminate\Support\Facades\Log;
 
 class SmsService
 {
-    protected ?string $token;
-    protected ?string $sender;
-    protected ?string $url;
+    protected string $token;
+    protected string $sender;
+    protected string $url;
 
     public function __construct()
     {
-        $this->token  = config('services.mocean.token');
-        $this->sender = config('services.mocean.sender');
-        $this->url    = config('services.mocean.url');
+        // Try config first, then env(), then hardcoded fallback
+        $this->token  = $this->getConfigValue('MOCEAN_API_TOKEN', 'services.mocean.token');
+        $this->sender = $this->getConfigValue('MOCEAN_SENDER', 'services.mocean.sender', 'MYAPP');
+        $this->url    = $this->getConfigValue('MOCEAN_URL', 'services.mocean.url', 'https://rest.moceanapi.com/rest/2/sms');
+
+        Log::info('SMS Service initialized', [
+            'token_length' => strlen($this->token),
+            'sender' => $this->sender,
+            'url' => $this->url,
+        ]);
+    }
+
+    private function getConfigValue(string $envKey, string $configKey, ?string $default = null): string
+    {
+        // Priority: $_ENV > env() > config() > default
+        $value = $_ENV[$envKey] ?? 
+                 getenv($envKey) ?: 
+                 env($envKey) ?: 
+                 config($configKey) ?: 
+                 $default;
+        
+        if (empty($value)) {
+            Log::error("Config missing: {$envKey} / {$configKey}");
+            throw new \RuntimeException("Missing required config: {$envKey}");
+        }
+        
+        return $value;
     }
 
     public function sendSMS(string $number, string $message): array
     {
-        // Guard clause: check if properly configured
-        if (empty($this->token) || empty($this->url)) {
-            Log::error('Mocean SMS not configured', [
-                'token_set' => !empty($this->token),
-                'url_set'   => !empty($this->url),
-            ]);
-            return ['status' => 'failed', 'error' => 'SMS service not configured'];
-        }
-
         $number = ltrim($number, '+');
 
-        Log::debug('Mocean payload', [
-            'mocean-api-token' => $this->token,
-            'mocean-from'      => $this->sender,
-            'mocean-to'        => $number,
-            'mocean-text'      => $message,
-        ]);
+        $payload = [
+            'mocean-api-token'   => $this->token,
+            'mocean-from'        => $this->sender,
+            'mocean-to'          => $number,
+            'mocean-text'        => $message,
+            'mocean-resp-format' => 'json',
+        ];
+
+        Log::debug('Mocean request', $payload);
 
         try {
-            $resp = Http::asForm()
-                ->withHeaders([
-                    'Authorization' => 'Bearer ' . $this->token,
-                ])
-                ->post($this->url, [
-                    'mocean-from'        => $this->sender,
-                    'mocean-to'          => $number,
-                    'mocean-text'        => $message,
-                    'mocean-resp-format' => 'json',
-                ]);
+            $resp = Http::asForm()->post($this->url, $payload);
 
-            Log::debug('Mocean raw response', [
-                'http_status' => $resp->status(),
-                'body'        => $resp->body(),
+            Log::debug('Mocean response', [
+                'status' => $resp->status(),
+                'body' => $resp->body(),
             ]);
 
-            $payload = $resp->json();
-            $msgId   = $payload['messages'][0]['msgid'] ?? 'no-id';
-            $status  = $payload['messages'][0]['status'] ?? 2;
+            $data = $resp->json();
+            
+            if (!isset($data['messages'][0])) {
+                return ['status' => 'failed', 'error' => 'Invalid response from Mocean'];
+            }
 
-            Log::info('Mocean submit', [
-                'to'     => $number,
-                'id'     => $msgId,
-                'status' => $status,
-            ]);
-
-            return match ($status) {
-                0       => ['status' => 'sent',    'id' => $msgId],
-                1       => ['status' => 'pending', 'id' => $msgId],
-                default => ['status' => 'failed',  'error' => "Mocean error {$status}"],
+            $msg = $data['messages'][0];
+            
+            return match ((int)($msg['status'] ?? 2)) {
+                0 => ['status' => 'sent', 'id' => $msg['msgid'] ?? 'unknown'],
+                1 => ['status' => 'pending', 'id' => $msg['msgid'] ?? 'unknown'],
+                default => ['status' => 'failed', 'error' => $msg['err_msg'] ?? "Error code {$msg['status']}"],
             };
 
         } catch (\Exception $e) {
-            Log::error('Mocean SMS exception', ['error' => $e->getMessage()]);
-            return ['status' => 'failed', 'error' => 'SMS service error: ' . $e->getMessage()];
+            Log::error('SMS send failed', ['error' => $e->getMessage()]);
+            return ['status' => 'failed', 'error' => $e->getMessage()];
         }
     }
 }
