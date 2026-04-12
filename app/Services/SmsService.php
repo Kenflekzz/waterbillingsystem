@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
@@ -19,41 +20,43 @@ class SmsService
 
     public function sendSMS(string $number, string $message): array
     {
-        // Format number: remove + and ensure it's in international format
+        // Remove + sign if present
         $number = ltrim($number, '+');
-        
-        // Ensure message is not empty and within limits
+
+        // Validate message
         if (empty($message)) {
             return ['status' => 'failed', 'error' => 'Message is empty'];
         }
-        
+
         if (strlen($message) > 1600) {
             return ['status' => 'failed', 'error' => 'Message too long (max 1600 chars)'];
         }
 
-        // Build query string manually to ensure proper encoding
+        // Mocean API payload (TOKEN MODE)
         $params = [
-            'mocean-api-token'   => config('mocean.token'),
+            'mocean-api-token'   => $this->token,
             'mocean-from'        => $this->sender,
             'mocean-to'          => $number,
             'mocean-text'        => $message,
             'mocean-resp-format' => 'json',
         ];
 
-        // Use query parameters instead of form body (GET request)
-        $url = $this->url . '?' . http_build_query($params);
-        
         try {
-            $resp = Http::get($url);
-            $body = $resp->body();
+            // IMPORTANT: use POST + form data (NOT GET)
+            $resp = Http::asForm()->post($this->url, $params);
 
+            $body = $resp->body();
             $data = json_decode($body, true);
 
+            // Handle invalid JSON response
             if (json_last_error() !== JSON_ERROR_NONE) {
-                return ['status' => 'failed', 'error' => 'Invalid response: ' . substr($body, 0, 200)];
+                return [
+                    'status' => 'failed',
+                    'error' => 'Invalid response: ' . substr($body, 0, 200),
+                ];
             }
 
-            // Check for API-level errors in response
+            // Handle API-level errors
             if (isset($data['status']) && $data['status'] != 0) {
                 return [
                     'status' => 'failed',
@@ -61,8 +64,13 @@ class SmsService
                 ];
             }
 
-            if (empty($data['messages']) || !isset($data['messages'][0])) {
-                return ['status' => 'failed', 'error' => 'No message response', 'raw' => $data];
+            // Validate message response
+            if (empty($data['messages'][0])) {
+                return [
+                    'status' => 'failed',
+                    'error' => 'No message response',
+                    'raw' => $data
+                ];
             }
 
             $msg = $data['messages'][0];
@@ -75,10 +83,20 @@ class SmsService
                 ];
             }
 
-            return ['status' => 'sent', 'id' => $msg['msgid']];
+            return [
+                'status' => 'sent',
+                'id' => $msg['msgid'] ?? null
+            ];
 
         } catch (\Exception $e) {
-            return ['status' => 'failed', 'error' => $e->getMessage()];
+            Log::error('Mocean SMS Error', [
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'status' => 'failed',
+                'error' => $e->getMessage()
+            ];
         }
     }
 }
