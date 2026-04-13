@@ -52,7 +52,9 @@ Route::get('read-waterbill', function () {
 // User Routes
 // --------------------
 
-
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok'], 200);
+});
 // --------------------
 // User Routes
 // --------------------
