@@ -4,3 +4,20 @@ thead th {
         text-align: center;
         word-break: break-word;
     }
+
+/* Fix oversized pagination arrows */
+.pagination {
+    margin-bottom: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.pagination .page-link {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.65rem;
+    line-height: 1.5;
+}
+
+.pagination .page-item.active .page-link {
+    z-index: 1;
+}

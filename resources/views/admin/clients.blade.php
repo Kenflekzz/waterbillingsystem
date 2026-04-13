@@ -127,7 +127,7 @@
                     @endforeach
                 </tbody>
             </table>
-            <div class="mt-3">
+            <div class="card-footer d-flex justify-content-center align-items-center py-2">
                 {{ $clients->links() }}
             </div>
         </div>
