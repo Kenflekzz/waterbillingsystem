@@ -15,6 +15,7 @@ class Clients extends Authenticatable
         'meter_no',
         'old_meter_no', // Added: stores previous meter number
         'full_name',
+        'email',
         'barangay',
         'purok',
         'contact_number',

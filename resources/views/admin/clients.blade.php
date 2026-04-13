@@ -10,7 +10,6 @@
         <li class="breadcrumb-item active">Clients</li>
     </ol>
 
-
     @if(session('error') && !session('add_client_error'))
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
@@ -61,6 +60,7 @@
                         <th>Meter Status</th>
                         <th>Replacement Date</th>
                         <th>Client Full Name</th>
+                        <th>Email</th>
                         <th>Barangay</th>
                         <th>Purok</th>
                         <th>Contact Number</th>
@@ -86,6 +86,13 @@
                             <td>{{ ucfirst($client->meter_status ?? 'old') }}</td>
                             <td>{{ $client->replacement_date ? \Carbon\Carbon::parse($client->replacement_date)->format('M d, Y') : '—' }}</td>
                             <td>{{ $client->full_name }}</td>
+                            <td>
+                                @if($client->email)
+                                    <a href="mailto:{{ $client->email }}" class="text-decoration-none">{{ $client->email }}</a>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
                             <td>{{ $client->barangay }}</td>
                             <td>{{ $client->purok }}</td>
                             <td>{{ $client->contact_number }}</td>
@@ -142,6 +149,15 @@
                             <tr><th>Full Name</th><td>{{ $client->full_name }}</td></tr>
                             <tr><th>Meter No.</th><td>{{ $client->meter_no }}</td></tr>
                             <tr><th>Old Meter No.</th><td>{{ $client->old_meter_no ?? '—' }}</td></tr>
+                            <tr><th>Email</th>
+                                <td>
+                                    @if($client->email)
+                                        <a href="mailto:{{ $client->email }}">{{ $client->email }}</a>
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                            </tr>
                             <tr><th>Group</th><td>{{ $client->group }}</td></tr>
                             <tr><th>Barangay</th><td>{{ $client->barangay }}</td></tr>
                             <tr><th>Purok</th><td>{{ $client->purok }}</td></tr>
@@ -198,6 +214,12 @@
                                 @if($client->old_meter_no)
                                     <div class="form-text text-muted">Previous: <span class="text-decoration-line-through">{{ $client->old_meter_no }}</span></div>
                                 @endif
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email', $client->email) }}">
+                                @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="form-text text-muted">Optional: Used for user registration auto-fill</div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Group</label>
@@ -306,6 +328,14 @@
                             </div>
                         @endif
 
+                        @if(session('duplicate_email'))
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <strong><i class="fas fa-database me-2"></i> Database Error:</strong>
+                                The value '{{ session('duplicate_email') }}' already exists. Please use a unique email address.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        @endif
+
                         @if(session('add_client_error'))
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                 <strong><i class="fas fa-exclamation-circle me-2"></i> Error:</strong>
@@ -324,6 +354,13 @@
                             <input type="text" class="form-control @error('meter_no') is-invalid @enderror @if(session('duplicate_meter')) is-invalid @endif" name="meter_no" value="{{ old('meter_no') }}" required>
                             @error('meter_no')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             @if(session('duplicate_meter'))<div class="invalid-feedback">This meter number is already registered.</div>@endif
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control @error('email') is-invalid @enderror @if(session('duplicate_email')) is-invalid @endif" name="email" value="{{ old('email') }}">
+                            @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @if(session('duplicate_email'))<div class="invalid-feedback">This email is already registered.</div>@endif
+                            <div class="form-text text-muted">Optional but recommended for user registration auto-fill</div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Group</label>

@@ -35,59 +35,69 @@ class ClientController extends Controller
 
     // Store a newly created resource in storage.
     public function store(Request $request)
-{   
-    try {
-        $validated = $request->validate([
-            'full_name' => 'required|string|max:255',
-            'meter_no' => 'required|string|max:255|unique:clients',
-            'group' => 'required|string|max:255',
-            'barangay' => 'required|string|max:255',
-            'purok' => 'required|string|max:255',
-            'contact_number' => 'required|string|max:11|unique:clients,contact_number',
-            'installation_date' => 'nullable|date',
-            'date_cut' => 'nullable|date',
-            'meter_status'     => 'nullable|in:old,replacement',
-            'replacement_date' => 'nullable|date',
-            'meter_series' => 'required|string|max:255',
-        ], [
-            'meter_no.unique' => 'The meter number has already been taken.',
-            'contact_number.unique' => 'This contact number is already registered.',
-            'full_name.required' => 'The full name field is required.',
-        ]);
+    {   
+        try {
+            $validated = $request->validate([
+                'full_name' => 'required|string|max:255',
+                'meter_no' => 'required|string|max:255|unique:clients',
+                'email' => 'nullable|email|max:255|unique:clients,email', // Added email validation
+                'group' => 'required|string|max:255',
+                'barangay' => 'required|string|max:255',
+                'purok' => 'required|string|max:255',
+                'contact_number' => 'required|string|max:11|unique:clients,contact_number',
+                'installation_date' => 'nullable|date',
+                'date_cut' => 'nullable|date',
+                'meter_status'     => 'nullable|in:old,replacement',
+                'replacement_date' => 'nullable|date',
+                'meter_series' => 'required|string|max:255',
+            ], [
+                'meter_no.unique' => 'The meter number has already been taken.',
+                'contact_number.unique' => 'This contact number is already registered.',
+                'email.unique' => 'This email address is already registered.',
+                'email.email' => 'Please enter a valid email address.',
+                'full_name.required' => 'The full name field is required.',
+            ]);
 
-        $validated['old_meter_no'] = null;
-        Clients::create($validated);
+            $validated['old_meter_no'] = null;
+            Clients::create($validated);
 
-        return redirect()->route('admin.clients.index')->with('success', 'Client created successfully.');
-        
-    } catch (ValidationException $e) {
-        return redirect()->back()
-            ->withErrors($e->validator)
-            ->withInput();
-    } catch (QueryException $e) {
-        // Check for unique constraint violations
-        if (str_contains($e->getMessage(), 'clients_contact_number_unique')) {
+            return redirect()->route('admin.clients.index')->with('success', 'Client created successfully.');
+            
+        } catch (ValidationException $e) {
             return redirect()->back()
-                ->with('duplicate_contact', $request->contact_number)
+                ->withErrors($e->validator)
+                ->withInput();
+        } catch (QueryException $e) {
+            // Check for unique constraint violations
+            if (str_contains($e->getMessage(), 'clients_contact_number_unique')) {
+                return redirect()->back()
+                    ->with('duplicate_contact', $request->contact_number)
+                    ->withInput();
+            }
+            
+            if (str_contains($e->getMessage(), 'clients_meter_no_unique')) {
+                return redirect()->back()
+                    ->with('duplicate_meter', $request->meter_no)
+                    ->withInput();
+            }
+            
+            // Check for duplicate email
+            if (str_contains($e->getMessage(), 'clients_email_unique')) {
+                return redirect()->back()
+                    ->with('duplicate_email', $request->email)
+                    ->withInput();
+            }
+
+            // Other database errors - mark as add_client_error
+            return redirect()->back()
+                ->with('add_client_error', $this->getFriendlyErrorMessage($e))
+                ->withInput();
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('add_client_error', 'An unexpected error occurred. Please try again.')
                 ->withInput();
         }
-        
-        if (str_contains($e->getMessage(), 'clients_meter_no_unique')) {
-            return redirect()->back()
-                ->with('duplicate_meter', $request->meter_no)
-                ->withInput();
-        }
-
-        // Other database errors - mark as add_client_error
-        return redirect()->back()
-            ->with('add_client_error', $this->getFriendlyErrorMessage($e))
-            ->withInput();
-    } catch (\Exception $e) {
-        return redirect()->back()
-            ->with('add_client_error', 'An unexpected error occurred. Please try again.')
-            ->withInput();
     }
-}
 
     // Display the specified resource.
     public function show(Clients $client)
@@ -116,6 +126,7 @@ class ClientController extends Controller
             $validated = $request->validate([
                 'full_name' => 'required|string|max:255',
                 'meter_no' => 'required|string|max:255|unique:clients,meter_no,' . $client->id,
+                'email' => 'nullable|email|max:255|unique:clients,email,' . $client->id, // Added email validation
                 'group' => 'nullable|string|max:255',
                 'barangay' => 'nullable|string|max:255',
                 'purok' => 'nullable|string|max:255',
@@ -128,6 +139,8 @@ class ClientController extends Controller
                 'status' => 'nullable|string|max:50',
             ],[
                 'meter_no.unique' => 'The meter number has already been taken.',
+                'email.unique' => 'This email address is already registered.',
+                'email.email' => 'Please enter a valid email address.',
             ]);
 
             // old_meter_no is automatically handled by the model's booted() method
@@ -140,6 +153,13 @@ class ClientController extends Controller
                 ->withErrors($e->validator)
                 ->withInput();
         } catch (QueryException $e) {
+            // Check for duplicate email in update
+            if (str_contains($e->getMessage(), 'clients_email_unique')) {
+                return redirect()->back()
+                    ->with('error', 'This email address is already registered to another client.')
+                    ->withInput();
+            }
+            
             return redirect()->back()
                 ->with('error', 'Database error: ' . $this->getFriendlyErrorMessage($e))
                 ->withInput();
@@ -204,6 +224,18 @@ class ClientController extends Controller
             preg_match("/Duplicate entry '(.+)' for key '(.+)'/", $message, $matches);
             $value = $matches[1] ?? 'unknown';
             $field = $matches[2] ?? 'field';
+            
+            // Make field names more user-friendly
+            if (str_contains($field, 'email')) {
+                return "The email address '{$value}' is already registered. Please use a different email.";
+            }
+            if (str_contains($field, 'contact_number')) {
+                return "The contact number '{$value}' is already registered. Please use a different number.";
+            }
+            if (str_contains($field, 'meter_no')) {
+                return "The meter number '{$value}' is already registered. Please use a different meter number.";
+            }
+            
             return "The value '{$value}' already exists for {$field}. Please use a unique value.";
         }
         
