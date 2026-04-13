@@ -8,10 +8,10 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Users;
 use Illuminate\Support\Facades\Log;
 use App\Models\Clients;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Validator; // ← ADD THIS
+use Illuminate\Support\Facades\Validator;
+use Sarfrazrizwan\Brevo\BrevoMailer; // ← ADD THIS LINE
 
 class UsersAuthController extends Controller
 {
@@ -181,43 +181,54 @@ class UsersAuthController extends Controller
     }
 
     public function sendResetOtp(Request $request)
-{
-    $request->validate(['email' => 'required|email']);
+    {
+        $request->validate(['email' => 'required|email']);
 
-    try {
-        $exists = Users::where('email', $request->email)->exists();
+        $user = Users::where('email', $request->email)->first();
 
-        if ($exists) {
-            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-            $user = Users::where('email', $request->email)->first();
-            $user->otp = $otp;
-            $user->otp_expires_at = now()->addMinutes(15);
-            $user->save();
-            
-            Mail::send('mails.otp', ['recepient' => $user, 'otp' => $otp], function ($msg) use ($user) {
-                $msg->to($user->email)
-                    ->subject('Password Reset – One-Time Password (OTP)');
-            });
-            
-            \Log::info('OTP sent to: ' . $user->email);
+        if (!$user) {
+            return response()->json([
+                'message' => 'E-mail not found in our records.',
+                'otpSent' => false
+            ], 422);
         }
 
-        return response()->json([
-            'message' => $exists
-                ? 'OTP sent to your registered e-mail.'
-                : 'E-mail not found in our records.',
-            'otpSent' => $exists
-        ], $exists ? 200 : 422);
-        
-    } catch (\Exception $e) {
-        \Log::error('OTP Error: ' . $e->getMessage());
-        
-        return response()->json([
-            'message' => 'Error sending OTP: ' . $e->getMessage(),
-            'otpSent' => false
-        ], 500);
+        // Generate OTP
+        $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $user->otp = $otp;
+        $user->otp_expires_at = now()->addMinutes(15);
+        $user->save();
+
+        try {
+            // Using the Laravel Brevo package
+            $brevo = new BrevoMailer();
+            
+            $htmlContent = view('mails.otp', ['recepient' => $user, 'otp' => $otp])->render();
+            
+            $brevo->sendEmail(
+                [$user->email => $user->first_name . ' ' . $user->last_name], // To
+                'Password Reset – One-Time Password (OTP)', // Subject
+                $htmlContent, // HTML content
+                'magallaneswaterbilling@gmail.com', // From email
+                'MEEDMO Magallanes Water Billing' // From name
+            );
+            
+            Log::info('OTP sent successfully to: ' . $user->email);
+            
+            return response()->json([
+                'message' => 'OTP sent to your registered e-mail.',
+                'otpSent' => true
+            ], 200);
+            
+        } catch (\Exception $e) {
+            Log::error('Brevo API Error: ' . $e->getMessage());
+            
+            return response()->json([
+                'message' => 'Error sending OTP. Please try again later.',
+                'otpSent' => false
+            ], 500);
+        }
     }
-}
 
     // verify OTP + change password
     public function resetWithOtp(Request $request)
@@ -242,10 +253,26 @@ class UsersAuthController extends Controller
         $user->otp_expires_at = null;
         $user->save();
 
-        Mail::raw('Your Magallanes Water Billing password was changed successfully.', 
-            fn ($msg) => $msg->to($user->email)
-                        ->subject('Password Changed Notification')
-        );
+        // Send confirmation email using Brevo (not Mail::raw)
+        try {
+            $brevo = new BrevoMailer();
+            
+            $confirmationHtml = "<h2>Password Changed Successfully</h2>
+                                <p>Your Magallanes Water Billing password has been changed successfully.</p>
+                                <p>If you did not perform this action, please contact support immediately.</p>
+                                <p>Thank you,<br>Magallanes Water Billing System</p>";
+            
+            $brevo->sendEmail(
+                [$user->email => $user->first_name . ' ' . $user->last_name],
+                'Password Changed Successfully',
+                $confirmationHtml,
+                'magallaneswaterbilling@gmail.com',
+                'MEEDMO Magallanes Water Billing'
+            );
+        } catch (\Exception $e) {
+            // Don't fail the request if confirmation email fails
+            Log::warning('Confirmation email failed: ' . $e->getMessage());
+        }
 
         return response()->json(['message' => 'Password changed successfully.'], 200);
     }
