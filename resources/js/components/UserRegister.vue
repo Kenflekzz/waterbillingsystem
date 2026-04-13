@@ -14,15 +14,16 @@
           <input 
             v-model="form.meter_number" 
             placeholder="Meter Number *" 
-            :class="{ 'is-invalid': errors.meter_number }"
+            :class="{ 'is-invalid': errors.meter_number, 'is-valid': meterLookupSuccess }"
             @blur="lookupMeterNumber"
             @input="onMeterNumberChange"
+            :disabled="meterLookupLoading || meterLocked"
           />
           <button 
             type="button" 
             @click="lookupMeterNumber" 
             class="lookup-btn"
-            :disabled="!form.meter_number || meterLookupLoading"
+            :disabled="!form.meter_number || meterLookupLoading || meterLocked"
           >
             <span v-if="meterLookupLoading">⏳</span>
             <span v-else>🔍</span>
@@ -30,12 +31,14 @@
         </div>
         <p v-if="errors.meter_number" class="error-msg">{{ errors.meter_number[0] }}</p>
         <p v-if="meterLookupSuccess" class="success-msg meter-success">✓ Meter verified! Details auto-filled below</p>
+        <p v-if="meterLocked && !meterLookupSuccess" class="error-msg">✗ Meter number invalid or already registered</p>
 
         <input 
           v-model="form.first_name" 
           placeholder="First Name *" 
           :class="{ 'is-invalid': errors.first_name, 'auto-filled': autoFilledFields.first_name }" 
           :readonly="autoFilledFields.first_name"
+          :disabled="!meterLookupSuccess"
         />
         <p v-if="errors.first_name" class="error-msg">{{ errors.first_name[0] }}</p>
 
@@ -44,6 +47,7 @@
           placeholder="Last Name *" 
           :class="{ 'is-invalid': errors.last_name, 'auto-filled': autoFilledFields.last_name }" 
           :readonly="autoFilledFields.last_name"
+          :disabled="!meterLookupSuccess"
         />
         <p v-if="errors.last_name" class="error-msg">{{ errors.last_name[0] }}</p>
 
@@ -52,6 +56,7 @@
           placeholder="Phone Number *" 
           :class="{ 'is-invalid': errors.phone_number, 'auto-filled': autoFilledFields.phone_number }" 
           :readonly="autoFilledFields.phone_number"
+          :disabled="!meterLookupSuccess"
         />
         <p v-if="errors.phone_number" class="error-msg">{{ errors.phone_number[0] }}</p>
 
@@ -59,7 +64,8 @@
           v-model="form.email" 
           type="email" 
           placeholder="Email *" 
-          :class="{ 'is-invalid': errors.email, 'auto-filled': autoFilledFields.email }" 
+          :class="{ 'is-invalid': errors.email }" 
+          :disabled="!meterLookupSuccess"
         />
         <p v-if="errors.email" class="error-msg">{{ errors.email[0] }}</p>
 
@@ -70,9 +76,10 @@
             v-model="form.password" 
             placeholder="Password *" 
             :class="{ 'is-invalid': errors.password }" 
+            :disabled="!meterLookupSuccess"
           />
           <i 
-            v-if="form.password.length > 0"
+            v-if="form.password.length > 0 && meterLookupSuccess"
             class="toggle-password bi"
             :class="showPassword.password ? 'bi-eye-slash' : 'bi-eye'"
             @click="showPassword.password = !showPassword.password"
@@ -85,14 +92,17 @@
             :type="showPassword.confirm ? 'text' : 'password'" 
             v-model="form.password_confirmation" 
             placeholder="Confirm Password *" 
+            :class="{ 'is-invalid': errors.password_confirmation }"
+            :disabled="!meterLookupSuccess"
           />
           <i 
-            v-if="form.password_confirmation.length > 0"
+            v-if="form.password_confirmation.length > 0 && meterLookupSuccess"
             class="toggle-password bi"
             :class="showPassword.confirm ? 'bi-eye-slash' : 'bi-eye'"
             @click="showPassword.confirm = !showPassword.confirm"
           ></i>
         </div>
+        <p v-if="errors.password_confirmation" class="error-msg">{{ errors.password_confirmation[0] }}</p>
 
         <button type="submit" :disabled="!isFormValid">Register</button>
       </form>
@@ -128,6 +138,7 @@ export default {
       loading: false,
       meterLookupLoading: false,
       meterLookupSuccess: false,
+      meterLocked: false,
       success: false,
       errors: {},
       autoFilledFields: {
@@ -141,24 +152,58 @@ export default {
   },
   computed: {
     isFormValid() {
-      return this.form.first_name && 
+      // CRITICAL: Must have meter verified successfully
+      if (!this.meterLookupSuccess) {
+        return false;
+      }
+      
+      // Check all required fields are filled
+      const hasRequiredFields = this.form.first_name && 
              this.form.last_name && 
              this.form.meter_number && 
              this.form.phone_number && 
              this.form.email && 
              this.form.password && 
-             this.form.password_confirmation &&
-             this.form.password.length >= 8 &&
-             Object.keys(this.errors).length === 0;
+             this.form.password_confirmation;
+      
+      // Check password requirements
+      const passwordsMatch = this.form.password === this.form.password_confirmation;
+      const passwordLength = this.form.password.length >= 8;
+      
+      // Check no validation errors
+      const noErrors = Object.keys(this.errors).length === 0;
+      
+      return hasRequiredFields && passwordsMatch && passwordLength && noErrors;
     }
   },
   methods: {
     onMeterNumberChange() {
-      // Reset auto-filled flags when meter number changes
+      // Reset everything when meter number changes
       if (this.originalMeterValue !== this.form.meter_number) {
-        this.resetAutoFilledFields();
+        this.resetForm();
         this.meterLookupSuccess = false;
+        this.meterLocked = false;
+        this.errors.meter_number = null;
       }
+    },
+    
+    resetForm() {
+      // Clear all auto-filled fields
+      this.form.first_name = '';
+      this.form.last_name = '';
+      this.form.phone_number = '';
+      this.form.email = '';
+      this.form.password = '';
+      this.form.password_confirmation = '';
+      
+      this.autoFilledFields = {
+        first_name: false,
+        last_name: false,
+        phone_number: false,
+        email: false
+      };
+      
+      this.errors = {};
     },
     
     resetAutoFilledFields() {
@@ -173,11 +218,14 @@ export default {
     async lookupMeterNumber() {
       if (!this.form.meter_number || this.form.meter_number.trim() === '') {
         this.errors.meter_number = ['Please enter a meter number'];
+        this.meterLookupSuccess = false;
+        this.meterLocked = false;
         return;
       }
       
       this.meterLookupLoading = true;
       this.meterLookupSuccess = false;
+      this.meterLocked = false;
       this.errors.meter_number = null;
       
       try {
@@ -195,17 +243,15 @@ export default {
         const data = await response.json();
         
         if (response.ok && data.found) {
-          // Auto-fill the form with meter data
+          // SUCCESS: Meter found and not registered
           this.form.first_name = data.data.first_name || '';
           this.form.last_name = data.data.last_name || '';
           this.form.phone_number = data.data.phone_number || '';
           
-          // If email is provided by the client record
           if (data.data.email) {
             this.form.email = data.data.email;
           }
           
-          // Mark fields as auto-filled (makes them readonly)
           this.autoFilledFields = {
             first_name: true,
             last_name: true,
@@ -215,26 +261,36 @@ export default {
           
           this.originalMeterValue = this.form.meter_number;
           this.meterLookupSuccess = true;
+          this.meterLocked = true;
           
-          // Clear any previous errors for these fields
+          // Clear any previous errors
           delete this.errors.first_name;
           delete this.errors.last_name;
           delete this.errors.phone_number;
+          delete this.errors.meter_number;
           
-          this.showTemporaryMessage('Meter verified! Your details have been auto-filled.', 'success');
+          this.showTemporaryMessage('Meter verified! Please complete your registration.', 'success');
         } else if (response.status === 404) {
           this.errors.meter_number = ['Meter number not found. Please contact your administrator.'];
+          this.meterLookupSuccess = false;
+          this.meterLocked = true;
           this.resetAutoFilledFields();
         } else if (response.status === 409) {
           this.errors.meter_number = ['This meter number is already registered. Please login instead.'];
+          this.meterLookupSuccess = false;
+          this.meterLocked = true;
           this.resetAutoFilledFields();
         } else {
           this.errors.meter_number = [data.message || 'Error looking up meter number'];
+          this.meterLookupSuccess = false;
+          this.meterLocked = true;
           this.resetAutoFilledFields();
         }
       } catch (err) {
         console.error('Lookup error:', err);
         this.errors.meter_number = ['Network error. Please try again.'];
+        this.meterLookupSuccess = false;
+        this.meterLocked = true;
         this.resetAutoFilledFields();
       } finally {
         this.meterLookupLoading = false;
@@ -261,6 +317,12 @@ export default {
     },
     
     async registerUser() {
+      // Double-check meter is verified before proceeding
+      if (!this.meterLookupSuccess) {
+        this.errors.meter_number = ['Please verify your meter number first'];
+        return;
+      }
+      
       this.loading = true;
       this.success = false;
       this.errors = {};
@@ -329,6 +391,19 @@ export default {
 </script>
 
 <style scoped>
+/* Add these new styles */
+input.is-valid {
+  border-color: #28a745;
+  background-color: #f0fff4;
+}
+
+input:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Rest of your existing styles remain exactly the same */
 .register-container {
   display: flex;
   justify-content: center;
@@ -363,7 +438,6 @@ export default {
   z-index: 1;
 }
 
-/* 🔹 Loader styles */
 #global-loader {
   display: flex;
   position: absolute;
@@ -392,7 +466,6 @@ export default {
   100% { transform: translateY(15px) scale(1); opacity:0.9; }
 }
 
-/* 🔹 Meter number wrapper */
 .meter-number-wrapper {
   position: relative;
   display: flex;
@@ -431,14 +504,12 @@ export default {
   cursor: not-allowed;
 }
 
-/* 🔹 Auto-filled field styling */
 .auto-filled {
   background-color: #e8f0fe;
   border-color: #007bff;
   color: #0056b3;
 }
 
-/* 🔹 Success message for meter */
 .meter-success {
   font-size: 0.85rem;
   margin-top: -0.5rem;
@@ -460,7 +531,7 @@ input {
   transition: all 0.2s ease;
 }
 
-input:focus {
+input:focus:not(:disabled) {
   outline: none;
   border-color: #007bff;
   box-shadow: 0 0 0 2px rgba(0,123,255,0.1);
@@ -546,7 +617,6 @@ p a:hover {
   text-decoration: underline;
 }
 
-/* Animations */
 @keyframes slideIn {
   from {
     transform: translateX(100%);
