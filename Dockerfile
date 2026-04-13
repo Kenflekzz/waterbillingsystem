@@ -37,9 +37,9 @@ RUN chmod -R 775 storage bootstrap/cache
 
 EXPOSE 10000
 
-# Clean and safe startup command
-CMD php artisan config:clear && \
-    php artisan config:cache && \
-    php artisan migrate --force || true && \
-    php artisan storage:link || true && \
+
+CMD env | grep -E "^(APP_|DB_|MYSQL_|SESSION_|CACHE_|CLOUDINARY_|IOT_|MOCEAN_|MAIL_|RESEND_)" > /app/.env && \
+    php artisan config:clear && \
+    php artisan cache:clear && \
+    php artisan storage:link && \
     php artisan serve --host 0.0.0.0 --port 10000
