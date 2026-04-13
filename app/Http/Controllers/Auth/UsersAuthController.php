@@ -184,18 +184,6 @@ class UsersAuthController extends Controller
 {
     $request->validate(['email' => 'required|email']);
 
-    // Temporarily set mail config
-    config([
-        'mail.default' => 'smtp',
-        'mail.mailers.smtp.host' => 'smtp.gmail.com',
-        'mail.mailers.smtp.port' => 587,
-        'mail.mailers.smtp.username' => 'magallaneswaterbilling@gmail.com',
-        'mail.mailers.smtp.password' => 'gbcgeieslxgxgtvf', // Your app password
-        'mail.mailers.smtp.encryption' => 'tls',
-        'mail.from.address' => 'magallaneswaterbilling@gmail.com',
-        'mail.from.name' => 'MEEDMO Magallanes Water Billing',
-    ]);
-
     try {
         $exists = Users::where('email', $request->email)->exists();
 
@@ -210,6 +198,8 @@ class UsersAuthController extends Controller
                 $msg->to($user->email)
                     ->subject('Password Reset – One-Time Password (OTP)');
             });
+            
+            \Log::info('OTP sent to: ' . $user->email);
         }
 
         return response()->json([
