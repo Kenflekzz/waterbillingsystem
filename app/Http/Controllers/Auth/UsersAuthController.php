@@ -11,6 +11,7 @@ use App\Models\Clients;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator; // ← ADD THIS
 
 class UsersAuthController extends Controller
 {
@@ -23,48 +24,6 @@ class UsersAuthController extends Controller
     {
         return view('user.userregister');
     }
-
-    /*
-     * Traditional login (Blade form)
-    
-    
-    public function login(Request $request)
-    {
-        $request->validate([
-            'meter_number' => 'required|string',
-            'password' => 'required|string',
-        ]);
-
-        Log::info('Login attempt for meter_number: ' . $request->meter_number);
-
-        if (Auth::guard('user')->attempt([
-            'meter_number' => $request->meter_number,
-            'password' => $request->password,
-        ])) {
-            $request->session()->regenerate();
-
-            Log::info('Login successful for meter_number: ' . $request->meter_number);
-
-            return $request->expectsJson()
-                ? response()->json([
-                    'success' => true,
-                    'redirect' => route('user.dashboard')
-                ])
-                : redirect()->route('user.dashboard');
-        }
-
-        Log::warning('Login failed for meter_number: ' . $request->meter_number);
-
-        return $request->expectsJson()
-            ? response()->json([
-                'success' => false,
-                'message' => 'Invalid credentials, please contact the admin.'
-            ], 401)
-            : back()->withErrors([
-                'meter_number' => 'Invalid credentials, please contact the admin.',
-            ]);
-    }
-    */
 
     /**
      * Vue/API login
@@ -105,13 +64,10 @@ class UsersAuthController extends Controller
         ], 401);
     }
 
-
-
     public function logout(Request $request)
     {
         Auth::guard('user')->logout();
 
-        //$request->session()->invalidate();
         $request->session()->regenerateToken();
 
         return redirect()->route('user.login');
@@ -137,7 +93,6 @@ class UsersAuthController extends Controller
 
         return view('user.consumption', compact('currentConsumption', 'previousConsumption', 'limit'));
 
-
         // Set the high consumption limit (C.U)
         $limit = 500; // You can change anytime
 
@@ -149,8 +104,7 @@ class UsersAuthController extends Controller
         ));
     }
 
-
-   public function apiRegister(Request $request)
+    public function apiRegister(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'meter_number' => 'required|string|exists:clients,meter_no',
@@ -225,6 +179,7 @@ class UsersAuthController extends Controller
             'user' => $user
         ], 201);
     }
+
     public function sendResetOtp(Request $request)
     {
         $request->validate(['email' => 'required|email']);
@@ -281,9 +236,4 @@ class UsersAuthController extends Controller
 
         return response()->json(['message' => 'Password changed successfully.'], 200);
     }
-
-
-
-
-
 }
