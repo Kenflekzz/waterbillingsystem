@@ -173,69 +173,70 @@ class UsersAuthController extends Controller
     }
 
     public function sendResetOtp(Request $request)
-    {
-        $request->validate(['email' => 'required|email']);
+{
+    $request->validate(['email' => 'required|email']);
 
-        $user = Users::where('email', $request->email)->first();
+    $user = Users::where('email', $request->email)->first();
 
-        if (!$user) {
-            return response()->json([
-                'message' => 'E-mail not found in our records.',
-                'otpSent' => false
-            ], 422);
-        }
-
-        // Generate OTP
-        $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        $user->otp = $otp;
-        $user->otp_expires_at = now()->addMinutes(15);
-        $user->save();
-
-        try {
-            // Configure Brevo API
-            $config = Configuration::getDefaultConfiguration()
-                ->setApiKey('api-key', env('BREVO_API_KEY'));
-            
-            $apiInstance = new TransactionalEmailsApi(new Client(), $config);
-            
-            // Prepare email content
-            $htmlContent = view('mails.otp', ['recepient' => $user, 'otp' => $otp])->render();
-            
-            // Create email
-            $email = new \Brevo\Client\Model\SendSmtpEmail([
-                'to' => [[
-                    'email' => $user->email, 
-                    'name' => $user->first_name . ' ' . $user->last_name
-                ]],
-                'subject' => 'Password Reset – One-Time Password (OTP)',
-                'html_content' => $htmlContent,
-                'sender' => [
-                    'email' => 'magallaneswaterbilling@gmail.com', 
-                    'name' => 'MEEDMO Magallanes Water Billing'
-                ]
-            ]);
-            
-            // Send email
-            $apiInstance->sendTransacEmail($email);
-            
-            Log::info('OTP sent successfully to: ' . $user->email);
-            
-            return response()->json([
-                'message' => 'OTP sent to your registered e-mail.',
-                'otpSent' => true
-            ], 200);
-            
-        } catch (\Exception $e) {
-            Log::error('Brevo API Error: ' . $e->getMessage());
-            Log::error('Error trace: ' . $e->getTraceAsString());
-            
-            return response()->json([
-                'message' => 'Error sending OTP: ' . $e->getMessage(),
-                'otpSent' => false
-            ], 500);
-        }
+    if (!$user) {
+        return response()->json([
+            'message' => 'E-mail not found in our records.',
+            'otpSent' => false
+        ], 422);
     }
 
+    // Generate OTP
+    $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    $user->otp = $otp;
+    $user->otp_expires_at = now()->addMinutes(15);
+    $user->save();
+
+    try {
+        // HARDCODE THE API KEY FOR TESTING (remove after testing)
+        $apiKey = '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';
+        
+        // Configure Brevo API
+        $config = Configuration::getDefaultConfiguration()
+            ->setApiKey('api-key', $apiKey);
+        
+        $apiInstance = new TransactionalEmailsApi(new Client(), $config);
+        
+        // Prepare email content
+        $htmlContent = view('mails.otp', ['recepient' => $user, 'otp' => $otp])->render();
+        
+        // Create email
+        $email = new \Brevo\Client\Model\SendSmtpEmail([
+            'to' => [[
+                'email' => $user->email, 
+                'name' => $user->first_name . ' ' . $user->last_name
+            ]],
+            'subject' => 'Password Reset – One-Time Password (OTP)',
+            'html_content' => $htmlContent,
+            'sender' => [
+                'email' => 'magallaneswaterbilling@gmail.com', 
+                'name' => 'MEEDMO Magallanes Water Billing'
+            ]
+        ]);
+        
+        // Send email
+        $apiInstance->sendTransacEmail($email);
+        
+        Log::info('OTP sent successfully to: ' . $user->email);
+        
+        return response()->json([
+            'message' => 'OTP sent to your registered e-mail.',
+            'otpSent' => true
+        ], 200);
+        
+    } catch (\Exception $e) {
+        Log::error('Brevo API Error: ' . $e->getMessage());
+        
+        return response()->json([
+            'message' => 'Error sending OTP: ' . $e->getMessage(),
+            'otpSent' => false
+        ], 500);
+    }
+}
     // verify OTP + change password
     public function resetWithOtp(Request $request)
     {
