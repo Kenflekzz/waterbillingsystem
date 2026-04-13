@@ -11,7 +11,9 @@ use App\Models\Clients;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
-use Sarfrazrizwan\Brevo\BrevoMailer; // ← ADD THIS LINE
+use Brevo\Client\Configuration;
+use Brevo\Client\Api\TransactionalEmailsApi;
+use GuzzleHttp\Client;
 
 class UsersAuthController extends Controller
 {
@@ -92,16 +94,6 @@ class UsersAuthController extends Controller
         $limit = 50; // highest safe C.U
 
         return view('user.consumption', compact('currentConsumption', 'previousConsumption', 'limit'));
-
-        // Set the high consumption limit (C.U)
-        $limit = 500; // You can change anytime
-
-        return view('user.consumption', compact(
-            'user',
-            'currentConsumption',
-            'previousConsumption',
-            'limit'
-        ));
     }
 
     public function apiRegister(Request $request)
@@ -200,18 +192,31 @@ class UsersAuthController extends Controller
         $user->save();
 
         try {
-            // Using the Laravel Brevo package
-            $brevo = new BrevoMailer();
+            // Configure Brevo API
+            $config = Configuration::getDefaultConfiguration()
+                ->setApiKey('api-key', env('BREVO_API_KEY'));
             
+            $apiInstance = new TransactionalEmailsApi(new Client(), $config);
+            
+            // Prepare email content
             $htmlContent = view('mails.otp', ['recepient' => $user, 'otp' => $otp])->render();
             
-            $brevo->sendEmail(
-                [$user->email => $user->first_name . ' ' . $user->last_name], // To
-                'Password Reset – One-Time Password (OTP)', // Subject
-                $htmlContent, // HTML content
-                'magallaneswaterbilling@gmail.com', // From email
-                'MEEDMO Magallanes Water Billing' // From name
-            );
+            // Create email
+            $email = new \Brevo\Client\Model\SendSmtpEmail([
+                'to' => [[
+                    'email' => $user->email, 
+                    'name' => $user->first_name . ' ' . $user->last_name
+                ]],
+                'subject' => 'Password Reset – One-Time Password (OTP)',
+                'html_content' => $htmlContent,
+                'sender' => [
+                    'email' => 'magallaneswaterbilling@gmail.com', 
+                    'name' => 'MEEDMO Magallanes Water Billing'
+                ]
+            ]);
+            
+            // Send email
+            $apiInstance->sendTransacEmail($email);
             
             Log::info('OTP sent successfully to: ' . $user->email);
             
@@ -222,9 +227,10 @@ class UsersAuthController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Brevo API Error: ' . $e->getMessage());
+            Log::error('Error trace: ' . $e->getTraceAsString());
             
             return response()->json([
-                'message' => 'Error sending OTP. Please try again later.',
+                'message' => 'Error sending OTP: ' . $e->getMessage(),
                 'otpSent' => false
             ], 500);
         }
@@ -253,22 +259,33 @@ class UsersAuthController extends Controller
         $user->otp_expires_at = null;
         $user->save();
 
-        // Send confirmation email using Brevo (not Mail::raw)
+        // Send confirmation email via Brevo (don't fail if it doesn't work)
         try {
-            $brevo = new BrevoMailer();
+            $config = Configuration::getDefaultConfiguration()
+                ->setApiKey('api-key', env('BREVO_API_KEY'));
+            
+            $apiInstance = new TransactionalEmailsApi(new Client(), $config);
             
             $confirmationHtml = "<h2>Password Changed Successfully</h2>
                                 <p>Your Magallanes Water Billing password has been changed successfully.</p>
                                 <p>If you did not perform this action, please contact support immediately.</p>
                                 <p>Thank you,<br>Magallanes Water Billing System</p>";
             
-            $brevo->sendEmail(
-                [$user->email => $user->first_name . ' ' . $user->last_name],
-                'Password Changed Successfully',
-                $confirmationHtml,
-                'magallaneswaterbilling@gmail.com',
-                'MEEDMO Magallanes Water Billing'
-            );
+            $email = new \Brevo\Client\Model\SendSmtpEmail([
+                'to' => [[
+                    'email' => $user->email, 
+                    'name' => $user->first_name . ' ' . $user->last_name
+                ]],
+                'subject' => 'Password Changed Successfully',
+                'html_content' => $confirmationHtml,
+                'sender' => [
+                    'email' => 'magallaneswaterbilling@gmail.com', 
+                    'name' => 'MEEDMO Magallanes Water Billing'
+                ]
+            ]);
+            
+            $apiInstance->sendTransacEmail($email);
+            
         } catch (\Exception $e) {
             // Don't fail the request if confirmation email fails
             Log::warning('Confirmation email failed: ' . $e->getMessage());
