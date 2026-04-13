@@ -29,6 +29,7 @@ use App\Http\Controllers\DisconnectPendingController;
 use App\Http\Controllers\ConsumptionReportController;
 use App\Http\Controllers\FlowReadingController;
 use App\Http\Controllers\IotDeviceController;
+use App\Http\Controllers\MeterLookupController;
 // --------------------
 // Home Route
 // --------------------
@@ -217,6 +218,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::get('/consumption_report', [ConsumptionReportController::class, 'index'])->name('consumption-report');
 });
+
+Route::get('/api/meter/{meter_number}', [MeterLookupController::class, 'lookup']);
 
 // --------------------
 // API Routes       

@@ -150,58 +150,80 @@ class UsersAuthController extends Controller
     }
 
 
-    public function apiRegister(Request $request)
+   public function apiRegister(Request $request)
     {
-        $validated = $request->validate([
-            'first_name'    => 'required|string|max:255',
-            'last_name'     => 'required|string|max:255',
-            'meter_number'  => 'required|string|max:255|unique:users,meter_number',
-            'phone_number'  => 'required|string|max:15',
-            'email'         => 'required|string|email|max:255|unique:users,email',
-            'password'      => 'required|string|min:6|confirmed',
+        $validator = Validator::make($request->all(), [
+            'meter_number' => 'required|string|exists:clients,meter_no',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'phone_number' => 'required|string|max:20',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
-        // Check if meter exists in clients
-        $existsInClients = Clients::where('meter_no', $validated['meter_number'])->exists();
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
 
-        if (!$existsInClients) {
+        // Find the client by meter number
+        $client = Clients::where('meter_no', $request->meter_number)->first();
+        
+        if (!$client) {
             return response()->json([
-                'success' => false,
-                'errors'  => [
-                    'meter_number' => ['The meter number does not exist in the system.']
+                'errors' => ['meter_number' => ['Invalid meter number']]
+            ], 422);
+        }
+        
+        // Check if already registered
+        if ($client->user_id) {
+            return response()->json([
+                'errors' => ['meter_number' => ['This meter number is already registered']]
+            ], 422);
+        }
+        
+        // Verify that the provided name matches the client record
+        $fullName = trim($client->full_name ?? '');
+        $providedFullName = trim($request->first_name . ' ' . $request->last_name);
+        
+        if (strcasecmp($fullName, $providedFullName) !== 0) {
+            return response()->json([
+                'errors' => [
+                    'first_name' => ['Name does not match our records for this meter number']
                 ]
             ], 422);
         }
-
-        // Create user
-        $user = Users::create([
-            'first_name'   => $validated['first_name'],
-            'last_name'    => $validated['last_name'],
-            'meter_number' => $validated['meter_number'],
-            'phone_number' => $validated['phone_number'],
-            'email'        => $validated['email'],
-            'password'     => bcrypt($validated['password']),
-        ]);
-
-        // Link to client
-        $client = Clients::where('meter_no', $validated['meter_number'])
-                        ->where('contact_number', $validated['phone_number'])
-                        ->first();
-
-        if ($client) {
-            $client->update(['user_id' => $user->id]);
+        
+        // Verify phone number matches
+        if ($client->contact_number !== $request->phone_number) {
+            return response()->json([
+                'errors' => [
+                    'phone_number' => ['Phone number does not match our records for this meter number']
+                ]
+            ], 422);
         }
-
-        // Auto login new user
-        Auth::guard('user')->login($user);
-
-        // Mark as NEW user so navbar shows "Welcome"
-        session(['is_new_user' => true]);
-
-        return response()->json([
-            'success'  => true,
-            'redirect' => route('user.home')
+        
+        // Create the user
+        $user = Users::create([
+            'meter_number' => $request->meter_number,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'phone_number' => $request->phone_number,
+            'email' => $request->email,
+            'password' => bcrypt($request->password),
+            'profile_image' => null,
         ]);
+        
+        // Link the user to the client record
+        $client->user_id = $user->id;
+        $client->save();
+        
+        // Log the user in
+        auth('user')->login($user);
+        
+        return response()->json([
+            'message' => 'Registration successful',
+            'user' => $user
+        ], 201);
     }
     public function sendResetOtp(Request $request)
     {
