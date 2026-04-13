@@ -181,9 +181,22 @@ class UsersAuthController extends Controller
     }
 
     public function sendResetOtp(Request $request)
-    {
-        $request->validate(['email' => 'required|email']);
+{
+    $request->validate(['email' => 'required|email']);
 
+    // Temporarily set mail config
+    config([
+        'mail.default' => 'smtp',
+        'mail.mailers.smtp.host' => 'smtp.gmail.com',
+        'mail.mailers.smtp.port' => 587,
+        'mail.mailers.smtp.username' => 'magallaneswaterbilling@gmail.com',
+        'mail.mailers.smtp.password' => 'gbcgeieslxgxgtvf', // Your app password
+        'mail.mailers.smtp.encryption' => 'tls',
+        'mail.from.address' => 'magallaneswaterbilling@gmail.com',
+        'mail.from.name' => 'MEEDMO Magallanes Water Billing',
+    ]);
+
+    try {
         $exists = Users::where('email', $request->email)->exists();
 
         if ($exists) {
@@ -192,6 +205,7 @@ class UsersAuthController extends Controller
             $user->otp = $otp;
             $user->otp_expires_at = now()->addMinutes(15);
             $user->save();
+            
             Mail::send('mails.otp', ['recepient' => $user, 'otp' => $otp], function ($msg) use ($user) {
                 $msg->to($user->email)
                     ->subject('Password Reset – One-Time Password (OTP)');
@@ -204,7 +218,16 @@ class UsersAuthController extends Controller
                 : 'E-mail not found in our records.',
             'otpSent' => $exists
         ], $exists ? 200 : 422);
+        
+    } catch (\Exception $e) {
+        \Log::error('OTP Error: ' . $e->getMessage());
+        
+        return response()->json([
+            'message' => 'Error sending OTP: ' . $e->getMessage(),
+            'otpSent' => false
+        ], 500);
     }
+}
 
     // verify OTP + change password
     public function resetWithOtp(Request $request)
