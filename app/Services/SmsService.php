@@ -13,9 +13,16 @@ class SmsService
 
     public function __construct()
     {
-        $this->token  = config('mocean.token');
+        $this->token = config('mocean.token');
         $this->sender = config('mocean.sender');
-        $this->url    = config('mocean.url');
+        $this->url = config('mocean.url');
+        
+        // Debug: Log if config values are loaded (remove in production)
+        Log::info('Mocean Config Loaded', [
+            'has_token' => !empty($this->token),
+            'has_sender' => !empty($this->sender),
+            'url' => $this->url
+        ]);
     }
 
     public function sendSMS(string $number, string $message): array
@@ -23,36 +30,55 @@ class SmsService
         // Remove + sign if present
         $number = ltrim($number, '+');
 
-        // Validate message
+        // Validate inputs
         if (empty($message)) {
             return ['status' => 'failed', 'error' => 'Message is empty'];
+        }
+
+        if (empty($this->token)) {
+            Log::error('Mocean token is missing');
+            return ['status' => 'failed', 'error' => 'API token not configured'];
         }
 
         if (strlen($message) > 1600) {
             return ['status' => 'failed', 'error' => 'Message too long (max 1600 chars)'];
         }
 
-        // Mocean API payload (TOKEN MODE)
+        // Mocean API payload - ONLY the message parameters
         $params = [
-            'mocean-api-token'   => $this->token,
-            'mocean-from'        => $this->sender,
-            'mocean-to'          => $number,
-            'mocean-text'        => $message,
-            'mocean-resp-format' => 'json',
+            'mocean-from' => $this->sender,
+            'mocean-to'   => $number,
+            'mocean-text' => $message,
         ];
 
         try {
-            // IMPORTANT: use POST + form data (NOT GET)
-            $resp = Http::asForm()->post($this->url, $params);
+            // Send request with Bearer token in Authorization header
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->token,
+                'Accept'        => 'application/json',
+            ])->asForm()->post($this->url, $params);
 
-            $body = $resp->body();
-            $data = json_decode($body, true);
+            // Log response for debugging
+            Log::info('Mocean API Response', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
 
-            // Handle invalid JSON response
-            if (json_last_error() !== JSON_ERROR_NONE) {
+            // Handle HTTP errors
+            if ($response->failed()) {
                 return [
                     'status' => 'failed',
-                    'error' => 'Invalid response: ' . substr($body, 0, 200),
+                    'error' => 'HTTP ' . $response->status() . ': ' . $response->body()
+                ];
+            }
+
+            $data = $response->json();
+
+            // Handle JSON parsing errors
+            if ($data === null) {
+                return [
+                    'status' => 'failed',
+                    'error' => 'Invalid JSON response: ' . substr($response->body(), 0, 200)
                 ];
             }
 
@@ -60,39 +86,32 @@ class SmsService
             if (isset($data['status']) && $data['status'] != 0) {
                 return [
                     'status' => 'failed',
-                    'error' => $data['err_msg'] ?? 'API error code: ' . $data['status'],
+                    'error' => $data['err_msg'] ?? 'API error code: ' . $data['status']
                 ];
             }
 
-            // Validate message response
-            if (empty($data['messages'][0])) {
+            // Check for successful message response
+            if (isset($data['messages'][0]) && $data['messages'][0]['status'] == 0) {
                 return [
-                    'status' => 'failed',
-                    'error' => 'No message response',
-                    'raw' => $data
-                ];
-            }
-
-            $msg = $data['messages'][0];
-            $status = (int) ($msg['status'] ?? 2);
-
-            if ($status !== 0) {
-                return [
-                    'status' => 'failed',
-                    'error' => $msg['err_msg'] ?? 'Failed with status: ' . $status,
+                    'status' => 'sent',
+                    'id' => $data['messages'][0]['msgid'] ?? null
                 ];
             }
 
             return [
-                'status' => 'sent',
-                'id' => $msg['msgid'] ?? null
+                'status' => 'failed',
+                'error' => $data['messages'][0]['err_msg'] ?? 'Unknown error',
+                'raw' => $data
             ];
 
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error('Mocean Connection Error', ['error' => $e->getMessage()]);
+            return [
+                'status' => 'failed',
+                'error' => 'Connection failed: ' . $e->getMessage()
+            ];
         } catch (\Exception $e) {
-            Log::error('Mocean SMS Error', [
-                'error' => $e->getMessage()
-            ]);
-
+            Log::error('Mocean SMS Error', ['error' => $e->getMessage()]);
             return [
                 'status' => 'failed',
                 'error' => $e->getMessage()
