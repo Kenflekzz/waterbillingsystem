@@ -20,28 +20,26 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
-# Copy ALL files first
+# Copy application
 COPY . .
-
-# Create empty .env file at build time
-RUN touch .env
 
 # Install PHP dependencies
 RUN composer install --optimize-autoloader --no-dev --no-scripts
 
-# Install Node deps and build frontend (resources/ is now available)
+# Install Node dependencies and build frontend
 RUN npm ci && npm run build
 
-# Run composer scripts after full app is present
+# Run post-autoload scripts safely
 RUN composer run-script post-autoload-dump || true
 
-# Set correct permissions
+# Fix permissions
 RUN chmod -R 775 storage bootstrap/cache
 
 EXPOSE 10000
 
-CMD env | grep -E "^(APP_|DB_|MYSQL_|SESSION_|CACHE_|CLOUDINARY_|IOT_|MOCEAN_)" > /app/.env && \
-    php artisan config:clear && \
-    php artisan cache:clear && \
-    php artisan storage:link && \
+# Clean and safe startup command
+CMD php artisan config:clear && \
+    php artisan config:cache && \
+    php artisan migrate --force || true && \
+    php artisan storage:link || true && \
     php artisan serve --host 0.0.0.0 --port 10000
