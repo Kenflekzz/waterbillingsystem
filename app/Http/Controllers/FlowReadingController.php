@@ -70,12 +70,22 @@ class FlowReadingController extends Controller
     }
     
 
-    // Get latest reading for a specific device
     public function latest($deviceId)
     {
         $reading = FlowReading::where('iot_device_id', $deviceId)
             ->latest()
             ->first();
+
+        // No reading at all
+        if (!$reading) {
+            return response()->json(null);
+        }
+
+        // ✅ FIXED: Return null if last reading is older than 15 seconds
+        // 15s = 3 missed sends (ESP32 sends every 5s)
+        if (now()->diffInSeconds($reading->created_at) > 15) {
+            return response()->json(null);
+        }
 
         return response()->json($reading);
     }

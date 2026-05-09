@@ -101,40 +101,49 @@ document.addEventListener('DOMContentLoaded', function () {
         cubicMeterEl.textContent    = '--';
     }
 
-    /* ========================================================
-       POLLING - replaces WebSocket
-    ======================================================== */
     function startPolling(deviceId) {
-        if (pollingInterval) clearInterval(pollingInterval);
-        currentDeviceId = deviceId;
-        setConnected();
+    if (pollingInterval) clearInterval(pollingInterval);
+    currentDeviceId = deviceId;
 
-        pollingInterval = setInterval(() => {
-            fetch(`/admin/flow-readings/latest/${deviceId}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (!data) {
-                        setDisconnected();
-                        return;
-                    }
+    // ✅ FIXED: Show "Connecting..." instead of immediately showing "Live"
+    statusDot.style.background = '#ff9800';
+    statusText.style.color     = '#ff9800';
+    statusText.textContent     = 'Connecting...';
 
-                    const rate       = parseFloat(data.flow_rate    ?? 0).toFixed(2);
-                    const volume     = parseFloat(data.total_volume ?? 0).toFixed(2);
-                    const cubicMeter = (parseFloat(volume) / 1000).toFixed(4);
-                    const timeLabel  = new Date().toLocaleTimeString();
+    // Clear chart on device switch
+    flowChart.data.labels = [];
+    flowChart.data.datasets[0].data = [];
+    flowChart.update();
 
-                    flowRateEl.textContent    = rate;
-                    totalVolumeEl.textContent = volume;
-                    cubicMeterEl.textContent  = cubicMeter;
-
-                    addChartData(timeLabel, parseFloat(rate));
-                })
-                .catch(err => {
-                    console.error('Polling failed:', err);
+    pollingInterval = setInterval(() => {
+        fetch(`/admin/flow-readings/latest/${deviceId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (!data) {
                     setDisconnected();
-                });
-        }, 3000); // poll every 5 seconds
-    }
+                    return;
+                }
+
+                // ✅ FIXED: Only set "Live" when fresh data actually arrives
+                setConnected();
+
+                const rate       = parseFloat(data.flow_rate    ?? 0).toFixed(2);
+                const volume     = parseFloat(data.total_volume ?? 0).toFixed(2);
+                const cubicMeter = (parseFloat(volume) / 1000).toFixed(4);
+                const timeLabel  = new Date().toLocaleTimeString();
+
+                flowRateEl.textContent    = rate;
+                totalVolumeEl.textContent = volume;
+                cubicMeterEl.textContent  = cubicMeter;
+
+                addChartData(timeLabel, parseFloat(rate));
+            })
+            .catch(err => {
+                console.error('Polling failed:', err);
+                setDisconnected();
+            });
+    }, 3000);
+}
 
     /* ========================================================
        DEVICE SELECT
@@ -142,11 +151,6 @@ document.addEventListener('DOMContentLoaded', function () {
     deviceSelect?.addEventListener('change', function () {
         const deviceId = this.value;
         if (!deviceId) return;
-
-        flowChart.data.labels = [];
-        flowChart.data.datasets[0].data = [];
-        flowChart.update();
-
         startPolling(deviceId);
     });
 
