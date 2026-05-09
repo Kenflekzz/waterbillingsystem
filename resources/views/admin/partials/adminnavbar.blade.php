@@ -7,7 +7,7 @@
     <img src="{{ asset('images/MAGALLANES_LOGO.png') }}" 
          alt="Logo" 
          style="height: 35px; width: auto; margin-right: 10px;">
-    <span>Magallanes Water Billing System </span>
+    <span>Water Billing System </span>
 </a>
 
 
