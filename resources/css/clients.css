@@ -1,6 +1,12 @@
 thead th {
-        font-size: 13px;
-        padding: 6px 8px;
-        text-align: center;
-        word-break: break-word;
-    }
+    font-size: 13px;
+    padding: 6px 8px;
+    text-align: center;
+    word-break: break-word;
+}
+
+/* Fix pagination arrow size */
+nav svg {
+    width: 0.75rem;
+    height: 0.75rem;
+}
