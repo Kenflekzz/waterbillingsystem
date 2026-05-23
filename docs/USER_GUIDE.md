@@ -23,6 +23,40 @@ If you are an admin, your job is to manage people and water bills. If you are a 
 
 ---
 
+**Public Pages (Available to anyone — no login needed)**
+
+These pages are in the footer of the home page and are useful if you don't have an account yet or just want a quick lookup.
+
+1) View meter number
+- Where: `/view-meternumber` or click the `View Meter Number` link in the footer.
+- What it does: You can search for a customer's meter number by entering their name or account details.
+- Why use it: If you forgot your meter number or want to find it without logging in.
+- Buttons and labels you will see:
+  - `Search` — search by name or account
+  - `View` — see the meter number result
+  - `Copy` — (optional) copy the meter number to clipboard
+
+2) Read a water bill publicly
+- Where: `/read-waterbill` or click the `Read Water Bill` link in the footer.
+- What it does: You can look up and view a bill without logging in. You may need to enter a meter number or reference number to find your bill.
+- Why use it: Quick access to your bill information without creating an account.
+- Buttons and labels you will see:
+  - `Search` — search by meter number or reference
+  - `View Bill` — open the bill details
+  - `Print` — print the bill
+  - `Download` — download the bill as PDF (if available)
+
+Step-by-step (read a bill publicly):
+  1. Go to `/read-waterbill` or click the footer link.
+  2. Enter your meter number or bill reference number.
+  3. Click `Search` to find your bill.
+  4. Review the bill details shown (amount due, consumption, readings).
+  5. Click `Print` or `Download` to save/print the bill.
+
+Child-friendly: Think of these public pages like a public bulletin board where anyone can look up their water bill or meter number without signing in first.
+
+---
+
 **For Users (People who pay water bills)**
 
 1) Signing up and signing in
@@ -168,6 +202,15 @@ Child-friendly: Think of the device as a little robot that counts how much water
 ---
 
 **Common user-experienced flows (detailed steps)**
+
+Flow: Look up meter number and read bill without logging in
+- 1. Go to the home page `/` and scroll to the footer.
+- 2. Click `View Meter Number` link to go to `/view-meternumber`.
+- 3. Enter your name or account details and click `Search`.
+- 4. Copy or note your meter number.
+- 5. Go to `/read-waterbill` using the footer link.
+- 6. Enter your meter number and click `Search`.
+- 7. Review the bill details and click `Print` or `Download` to save it.
 
 Flow: New user signs up and pays a bill
  1. Go to `/user/register` and click the `Register` button after filling the form.

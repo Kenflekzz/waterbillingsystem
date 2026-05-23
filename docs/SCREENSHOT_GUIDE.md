@@ -4,7 +4,22 @@ This file tells you exactly what screenshots to capture and what filenames to us
 
 Capture checklist
 
-1. Sign up page
+1. Home page with footer
+- URL: `/`
+- Filename: `docs/images/homepage.png`
+- Capture: the footer area showing the `View Meter Number` and `Read Water Bill` links.
+
+2. View meter number page
+- URL: `/view-meternumber`
+- Filename: `docs/images/view_meter_number.png`
+- Capture: the search form with `Search` button and the result showing the meter number.
+
+3. Read water bill page
+- URL: `/read-waterbill`
+- Filename: `docs/images/read_waterbill.png`
+- Capture: the search form and a bill result showing `Print` and `Download` buttons.
+
+4. Sign up page
 - URL: `/user/register`
 - Filename: `docs/images/signup.png`
 - Capture: the full page showing the `Register` button and the form filled with example data (do not use real personal data).
