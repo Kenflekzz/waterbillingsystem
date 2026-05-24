@@ -9,67 +9,106 @@
       </div>
 
       <form @submit.prevent="registerUser">
-        <input v-model="form.first_name" 
-               placeholder="First Name" 
-               :class="{ 'is-invalid': errors.first_name }" />
+        <!-- 🔹 Meter Number with lookup button -->
+        <div class="meter-number-wrapper">
+          <input 
+            v-model="form.meter_number" 
+            placeholder="Meter Number *" 
+            :class="{ 'is-invalid': errors.meter_number, 'is-valid': meterLookupSuccess }"
+            @blur="lookupMeterNumber"
+            @input="onMeterNumberChange"
+            :disabled="meterLookupLoading || meterLocked"
+          />
+          <button 
+            type="button" 
+            @click="lookupMeterNumber" 
+            class="lookup-btn"
+            :disabled="!form.meter_number || meterLookupLoading || meterLocked"
+          >
+            <span v-if="meterLookupLoading">⏳</span>
+            <span v-else>🔍</span>
+          </button>
+        </div>
+        <p v-if="errors.meter_number" class="error-msg">{{ errors.meter_number[0] }}</p>
+        <p v-if="meterLookupSuccess" class="success-msg meter-success">✓ Meter verified! Details auto-filled below</p>
+        <p v-if="meterLocked && !meterLookupSuccess" class="error-msg">✗ Meter number invalid or already registered</p>
+
+        <input 
+          v-model="form.first_name" 
+          placeholder="First Name *" 
+          :class="{ 'is-invalid': errors.first_name, 'auto-filled': autoFilledFields.first_name }" 
+          :readonly="autoFilledFields.first_name"
+          :disabled="!meterLookupSuccess"
+        />
         <p v-if="errors.first_name" class="error-msg">{{ errors.first_name[0] }}</p>
 
-        <input v-model="form.last_name" 
-               placeholder="Last Name" 
-               :class="{ 'is-invalid': errors.last_name }" />
+        <input 
+          v-model="form.last_name" 
+          placeholder="Last Name *" 
+          :class="{ 'is-invalid': errors.last_name, 'auto-filled': autoFilledFields.last_name }" 
+          :readonly="autoFilledFields.last_name"
+          :disabled="!meterLookupSuccess"
+        />
         <p v-if="errors.last_name" class="error-msg">{{ errors.last_name[0] }}</p>
 
-        <input v-model="form.meter_number" 
-               placeholder="Meter Number" 
-               :class="{ 'is-invalid': errors.meter_number }" />
-        <p v-if="errors.meter_number" class="error-msg">{{ errors.meter_number[0] }}</p>
-
-        <input v-model="form.phone_number" 
-               placeholder="Phone Number" 
-               :class="{ 'is-invalid': errors.phone_number }" />
+        <input 
+          v-model="form.phone_number" 
+          placeholder="Phone Number *" 
+          :class="{ 'is-invalid': errors.phone_number, 'auto-filled': autoFilledFields.phone_number }" 
+          :readonly="autoFilledFields.phone_number"
+          :disabled="!meterLookupSuccess"
+        />
         <p v-if="errors.phone_number" class="error-msg">{{ errors.phone_number[0] }}</p>
 
-        <input v-model="form.email" type="email" 
-               placeholder="Email" 
-               :class="{ 'is-invalid': errors.email }" />
+        <input 
+          v-model="form.email" 
+          type="email" 
+          placeholder="Email *" 
+          :class="{ 'is-invalid': errors.email }" 
+          :disabled="!meterLookupSuccess"
+        />
         <p v-if="errors.email" class="error-msg">{{ errors.email[0] }}</p>
 
         <!-- 🔹 Password with toggle -->
-          <div class="password-wrapper">
-            <input 
-              :type="showPassword.password ? 'text' : 'password'" 
-              v-model="form.password" 
-              placeholder="Password" 
-              :class="{ 'is-invalid': errors.password }" 
-            />
-            <i 
-              v-if="form.password.length > 0"
-              class="toggle-password bi"
-              :class="showPassword.password ? 'bi-eye-slash' : 'bi-eye'"
-              @click="showPassword.password = !showPassword.password"
-            ></i>
-          </div>
+        <div class="password-wrapper">
+          <input 
+            :type="showPassword.password ? 'text' : 'password'" 
+            v-model="form.password" 
+            placeholder="Password *" 
+            :class="{ 'is-invalid': errors.password }" 
+            :disabled="!meterLookupSuccess"
+          />
+          <i 
+            v-if="form.password.length > 0 && meterLookupSuccess"
+            class="toggle-password bi"
+            :class="showPassword.password ? 'bi-eye-slash' : 'bi-eye'"
+            @click="showPassword.password = !showPassword.password"
+          ></i>
+        </div>
 
-          <!-- 🔹 Confirm Password with toggle -->
-          <div class="password-wrapper">
-            <input 
-              :type="showPassword.confirm ? 'text' : 'password'" 
-              v-model="form.password_confirmation" 
-              placeholder="Confirm Password" 
-            />
-            <i 
-              v-if="form.password_confirmation.length > 0"
-              class="toggle-password bi"
-              :class="showPassword.confirm ? 'bi-eye-slash' : 'bi-eye'"
-              @click="showPassword.confirm = !showPassword.confirm"
-            ></i>
-          </div>
+        <!-- 🔹 Confirm Password with toggle -->
+        <div class="password-wrapper">
+          <input 
+            :type="showPassword.confirm ? 'text' : 'password'" 
+            v-model="form.password_confirmation" 
+            placeholder="Confirm Password *" 
+            :class="{ 'is-invalid': errors.password_confirmation }"
+            :disabled="!meterLookupSuccess"
+          />
+          <i 
+            v-if="form.password_confirmation.length > 0 && meterLookupSuccess"
+            class="toggle-password bi"
+            :class="showPassword.confirm ? 'bi-eye-slash' : 'bi-eye'"
+            @click="showPassword.confirm = !showPassword.confirm"
+          ></i>
+        </div>
+        <p v-if="errors.password_confirmation" class="error-msg">{{ errors.password_confirmation[0] }}</p>
 
-        <button type="submit">Register</button>
+        <button type="submit" :disabled="!isFormValid">Register</button>
       </form>
 
       <p v-if="errors.general" class="error-msg">{{ errors.general[0] }}</p>
-      <p v-if="success" class="success-msg">Registration successful!</p>
+      <p v-if="success" class="success-msg">Registration successful! Redirecting...</p>
 
       <p class="mt-3 text-center">
         Already have an account?
@@ -82,33 +121,225 @@
 <script>
 export default {
   data() {
-  return {
-    form: {
-      first_name: '',
-      last_name: '',
-      meter_number: '',
-      phone_number: '',
-      email: '',
-      password: '',
-      password_confirmation: ''
-    },
-    showPassword: {
-      password: false,
-      confirm: false
-    },
-    loading: false,
-    success: false,
-    errors: {}
-  }
-},
+    return {
+      form: {
+        first_name: '',
+        last_name: '',
+        meter_number: '',
+        phone_number: '',
+        email: '',
+        password: '',
+        password_confirmation: ''
+      },
+      showPassword: {
+        password: false,
+        confirm: false
+      },
+      loading: false,
+      meterLookupLoading: false,
+      meterLookupSuccess: false,
+      meterLocked: false,
+      success: false,
+      errors: {},
+      autoFilledFields: {
+        first_name: false,
+        last_name: false,
+        phone_number: false,
+        email: false
+      },
+      originalMeterValue: ''
+    }
+  },
+  computed: {
+    isFormValid() {
+      // CRITICAL: Must have meter verified successfully
+      if (!this.meterLookupSuccess) {
+        return false;
+      }
+      
+      // Check all required fields are filled
+      const hasRequiredFields = this.form.first_name && 
+             this.form.last_name && 
+             this.form.meter_number && 
+             this.form.phone_number && 
+             this.form.email && 
+             this.form.password && 
+             this.form.password_confirmation;
+      
+      // Check password requirements
+      const passwordsMatch = this.form.password === this.form.password_confirmation;
+      const passwordLength = this.form.password.length >= 8;
+      
+      // Check no validation errors
+      const noErrors = Object.keys(this.errors).length === 0;
+      
+      return hasRequiredFields && passwordsMatch && passwordLength && noErrors;
+    }
+  },
   methods: {
-    togglePassword() {
-      this.showPassword[field] = !this.showPassword[field];
+    onMeterNumberChange() {
+      // Reset everything when meter number changes
+      if (this.originalMeterValue !== this.form.meter_number) {
+        this.resetForm();
+        this.meterLookupSuccess = false;
+        this.meterLocked = false;
+        this.errors.meter_number = null;
+      }
     },
+    
+    resetForm() {
+      // Clear all auto-filled fields
+      this.form.first_name = '';
+      this.form.last_name = '';
+      this.form.phone_number = '';
+      this.form.email = '';
+      this.form.password = '';
+      this.form.password_confirmation = '';
+      
+      this.autoFilledFields = {
+        first_name: false,
+        last_name: false,
+        phone_number: false,
+        email: false
+      };
+      
+      this.errors = {};
+    },
+    
+    resetAutoFilledFields() {
+      this.autoFilledFields = {
+        first_name: false,
+        last_name: false,
+        phone_number: false,
+        email: false
+      };
+    },
+    
+    async lookupMeterNumber() {
+      if (!this.form.meter_number || this.form.meter_number.trim() === '') {
+        this.errors.meter_number = ['Please enter a meter number'];
+        this.meterLookupSuccess = false;
+        this.meterLocked = false;
+        return;
+      }
+      
+      this.meterLookupLoading = true;
+      this.meterLookupSuccess = false;
+      this.meterLocked = false;
+      this.errors.meter_number = null;
+      
+      try {
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        
+        const response = await fetch(`/api/meter/${this.form.meter_number}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'Accept': 'application/json'
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.found) {
+          // SUCCESS: Meter found and not registered
+          this.form.first_name = data.data.first_name || '';
+          this.form.last_name = data.data.last_name || '';
+          this.form.phone_number = data.data.phone_number || '';
+          
+          if (data.data.email) {
+            this.form.email = data.data.email;
+          }
+          
+          this.autoFilledFields = {
+            first_name: true,
+            last_name: true,
+            phone_number: true,
+            email: data.data.email ? true : false
+          };
+          
+          this.originalMeterValue = this.form.meter_number;
+          this.meterLookupSuccess = true;
+          this.meterLocked = true;
+          
+          // Clear any previous errors
+          delete this.errors.first_name;
+          delete this.errors.last_name;
+          delete this.errors.phone_number;
+          delete this.errors.meter_number;
+          
+          this.showTemporaryMessage('Meter verified! Please complete your registration.', 'success');
+        } else if (response.status === 404) {
+          this.errors.meter_number = ['Meter number not found. Please contact your administrator.'];
+          this.meterLookupSuccess = false;
+          this.meterLocked = true;
+          this.resetAutoFilledFields();
+        } else if (response.status === 409) {
+          this.errors.meter_number = ['This meter number is already registered. Please login instead.'];
+          this.meterLookupSuccess = false;
+          this.meterLocked = true;
+          this.resetAutoFilledFields();
+        } else {
+          this.errors.meter_number = [data.message || 'Error looking up meter number'];
+          this.meterLookupSuccess = false;
+          this.meterLocked = true;
+          this.resetAutoFilledFields();
+        }
+      } catch (err) {
+        console.error('Lookup error:', err);
+        this.errors.meter_number = ['Network error. Please try again.'];
+        this.meterLookupSuccess = false;
+        this.meterLocked = true;
+        this.resetAutoFilledFields();
+      } finally {
+        this.meterLookupLoading = false;
+      }
+    },
+    
+    showTemporaryMessage(message, type) {
+      const msgDiv = document.createElement('div');
+      msgDiv.textContent = message;
+      msgDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        background: ${type === 'success' ? '#4CAF50' : '#f44336'};
+        color: white;
+        border-radius: 5px;
+        z-index: 1000;
+        animation: slideIn 0.3s ease, fadeOut 3s 2.7s forwards;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      `;
+      document.body.appendChild(msgDiv);
+      setTimeout(() => msgDiv.remove(), 3000);
+    },
+    
     async registerUser() {
-      this.loading = true;  // 🔹 show loader
+      // Double-check meter is verified before proceeding
+      if (!this.meterLookupSuccess) {
+        this.errors.meter_number = ['Please verify your meter number first'];
+        return;
+      }
+      
+      this.loading = true;
       this.success = false;
       this.errors = {};
+
+      // Validate password length
+      if (this.form.password.length < 8) {
+        this.errors.password = ['Password must be at least 8 characters'];
+        this.loading = false;
+        return;
+      }
+
+      // Validate password confirmation
+      if (this.form.password !== this.form.password_confirmation) {
+        this.errors.password_confirmation = ['Password confirmation does not match'];
+        this.loading = false;
+        return;
+      }
 
       const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
@@ -143,23 +374,16 @@ export default {
 
         this.success = true;
         this.errors = {};
-        this.form = {
-          first_name: '',
-          last_name: '',
-          meter_number: '',
-          phone_number: '',
-          email: '',
-          password: '',
-          password_confirmation: ''
-        };
 
-        // 🔹 Redirect after registration
-        window.location.href = '/user/dashboard';
+        // Redirect after registration
+        setTimeout(() => {
+          window.location.href = '/user/dashboard';
+        }, 1500);
 
       } catch (err) {
         this.errors.general = [err.message];
       } finally {
-        this.loading = false; // 🔹 hide loader
+        this.loading = false;
       }
     }
   }
@@ -167,6 +391,19 @@ export default {
 </script>
 
 <style scoped>
+/* Add these new styles */
+input.is-valid {
+  border-color: #28a745;
+  background-color: #f0fff4;
+}
+
+input:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Rest of your existing styles remain exactly the same */
 .register-container {
   display: flex;
   justify-content: center;
@@ -175,6 +412,19 @@ export default {
   background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)),
               url('/images/1000019368.jpg') no-repeat center center;
   background-size: cover;
+  position: relative;
+}
+
+.register-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 0;
 }
 
 .form-wrapper {
@@ -185,18 +435,23 @@ export default {
   width: 100%;
   max-width: 400px;
   position: relative;
+  z-index: 1;
 }
 
-/* 🔹 Loader styles */
 #global-loader {
   display: flex;
   position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   justify-content: center;
   align-items: center;
-  background: rgba(255,255,255,0.8);
+  background: rgba(255,255,255,0.9);
   z-index: 999;
+  border-radius: 12px;
 }
+
 .droplet {
   width: 40px;
   height: 40px;
@@ -204,10 +459,62 @@ export default {
   border-radius: 50% 50% 60% 60%;
   animation: drop 0.8s infinite ease-in-out;
 }
+
 @keyframes drop {
   0% { transform: translateY(-15px) scale(1); opacity:0.9; }
   50% { transform: translateY(0px) scale(0.85); opacity:1; }
   100% { transform: translateY(15px) scale(1); opacity:0.9; }
+}
+
+.meter-number-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.meter-number-wrapper input {
+  flex: 1;
+  padding-right: 45px;
+}
+
+.lookup-btn {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 8px;
+  color: #007bff;
+  width: auto;
+  min-width: auto;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.lookup-btn:hover:not(:disabled) {
+  background: #f0f0f0;
+  transform: translateY(-50%) scale(1.05);
+}
+
+.lookup-btn:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.auto-filled {
+  background-color: #e8f0fe;
+  border-color: #007bff;
+  color: #0056b3;
+}
+
+.meter-success {
+  font-size: 0.85rem;
+  margin-top: -0.5rem;
+  margin-bottom: 0.5rem;
+  color: #28a745;
 }
 
 form {
@@ -221,13 +528,29 @@ input {
   border: 1px solid #ccc;
   border-radius: 8px;
   font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+input:focus:not(:disabled) {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0,123,255,0.1);
 }
 
 input.is-invalid {
   border-color: red;
 }
 
-button {
+input.is-invalid:focus {
+  box-shadow: 0 0 0 2px rgba(255,0,0,0.1);
+}
+
+input:read-only {
+  cursor: default;
+  background-color: #f8f9fa;
+}
+
+button[type="submit"] {
   padding: 0.75rem;
   border: none;
   background: #007bff;
@@ -236,21 +559,29 @@ button {
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.3s ease;
+  font-weight: 600;
 }
 
-button:hover {
+button[type="submit"]:hover:not(:disabled) {
   background: #0056b3;
+}
+
+button[type="submit"]:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 
 .error-msg {
   color: red;
   margin-top: -0.5rem;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .success-msg {
-  color: green;
+  color: #28a745;
   margin-top: 0.5rem;
+  font-size: 0.9rem;
+  text-align: center;
 }
 
 .password-wrapper {
@@ -259,7 +590,7 @@ button:hover {
 
 .password-wrapper input {
   width: 100%;
-  padding-right: 2.5rem; /* room for eye icon */
+  padding-right: 2.5rem;
 }
 
 .toggle-password {
@@ -270,15 +601,37 @@ button:hover {
   cursor: pointer;
   color: #555;
   font-size: 1.2rem;
+  transition: color 0.2s ease;
 }
 
-
+.toggle-password:hover {
+  color: #007bff;
+}
 
 p a {
   color: #007bff;
   text-decoration: none;
 }
+
 p a:hover {
   text-decoration: underline;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
 }
 </style>

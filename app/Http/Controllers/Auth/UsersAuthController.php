@@ -8,9 +8,12 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Users;
 use Illuminate\Support\Facades\Log;
 use App\Models\Clients;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator;
+use Brevo\Client\Configuration;
+use Brevo\Client\Api\TransactionalEmailsApi;
+use GuzzleHttp\Client;
 
 class UsersAuthController extends Controller
 {
@@ -23,48 +26,6 @@ class UsersAuthController extends Controller
     {
         return view('user.userregister');
     }
-
-    /*
-     * Traditional login (Blade form)
-    
-    
-    public function login(Request $request)
-    {
-        $request->validate([
-            'meter_number' => 'required|string',
-            'password' => 'required|string',
-        ]);
-
-        Log::info('Login attempt for meter_number: ' . $request->meter_number);
-
-        if (Auth::guard('user')->attempt([
-            'meter_number' => $request->meter_number,
-            'password' => $request->password,
-        ])) {
-            $request->session()->regenerate();
-
-            Log::info('Login successful for meter_number: ' . $request->meter_number);
-
-            return $request->expectsJson()
-                ? response()->json([
-                    'success' => true,
-                    'redirect' => route('user.dashboard')
-                ])
-                : redirect()->route('user.dashboard');
-        }
-
-        Log::warning('Login failed for meter_number: ' . $request->meter_number);
-
-        return $request->expectsJson()
-            ? response()->json([
-                'success' => false,
-                'message' => 'Invalid credentials, please contact the admin.'
-            ], 401)
-            : back()->withErrors([
-                'meter_number' => 'Invalid credentials, please contact the admin.',
-            ]);
-    }
-    */
 
     /**
      * Vue/API login
@@ -105,13 +66,10 @@ class UsersAuthController extends Controller
         ], 401);
     }
 
-
-
     public function logout(Request $request)
     {
         Auth::guard('user')->logout();
 
-        //$request->session()->invalidate();
         $request->session()->regenerateToken();
 
         return redirect()->route('user.login');
@@ -136,98 +94,153 @@ class UsersAuthController extends Controller
         $limit = 50; // highest safe C.U
 
         return view('user.consumption', compact('currentConsumption', 'previousConsumption', 'limit'));
-
-
-        // Set the high consumption limit (C.U)
-        $limit = 500; // You can change anytime
-
-        return view('user.consumption', compact(
-            'user',
-            'currentConsumption',
-            'previousConsumption',
-            'limit'
-        ));
     }
-
 
     public function apiRegister(Request $request)
     {
-        $validated = $request->validate([
-            'first_name'    => 'required|string|max:255',
-            'last_name'     => 'required|string|max:255',
-            'meter_number'  => 'required|string|max:255|unique:users,meter_number',
-            'phone_number'  => 'required|string|max:15',
-            'email'         => 'required|string|email|max:255|unique:users,email',
-            'password'      => 'required|string|min:6|confirmed',
+        $validator = Validator::make($request->all(), [
+            'meter_number' => 'required|string|exists:clients,meter_no',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'phone_number' => 'required|string|max:20',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
-        // Check if meter exists in clients
-        $existsInClients = Clients::where('meter_no', $validated['meter_number'])->exists();
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
 
-        if (!$existsInClients) {
+        // Find the client by meter number
+        $client = Clients::where('meter_no', $request->meter_number)->first();
+        
+        if (!$client) {
             return response()->json([
-                'success' => false,
-                'errors'  => [
-                    'meter_number' => ['The meter number does not exist in the system.']
+                'errors' => ['meter_number' => ['Invalid meter number']]
+            ], 422);
+        }
+        
+        // Check if already registered
+        if ($client->user_id) {
+            return response()->json([
+                'errors' => ['meter_number' => ['This meter number is already registered']]
+            ], 422);
+        }
+        
+        // Verify that the provided name matches the client record
+        $fullName = trim($client->full_name ?? '');
+        $providedFullName = trim($request->first_name . ' ' . $request->last_name);
+        
+        if (strcasecmp($fullName, $providedFullName) !== 0) {
+            return response()->json([
+                'errors' => [
+                    'first_name' => ['Name does not match our records for this meter number']
                 ]
             ], 422);
         }
-
-        // Create user
+        
+        // Verify phone number matches
+        if ($client->contact_number !== $request->phone_number) {
+            return response()->json([
+                'errors' => [
+                    'phone_number' => ['Phone number does not match our records for this meter number']
+                ]
+            ], 422);
+        }
+        
+        // Create the user
         $user = Users::create([
-            'first_name'   => $validated['first_name'],
-            'last_name'    => $validated['last_name'],
-            'meter_number' => $validated['meter_number'],
-            'phone_number' => $validated['phone_number'],
-            'email'        => $validated['email'],
-            'password'     => bcrypt($validated['password']),
+            'meter_number' => $request->meter_number,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'phone_number' => $request->phone_number,
+            'email' => $request->email,
+            'password' => bcrypt($request->password),
+            'profile_image' => null,
         ]);
-
-        // Link to client
-        $client = Clients::where('meter_no', $validated['meter_number'])
-                        ->where('contact_number', $validated['phone_number'])
-                        ->first();
-
-        if ($client) {
-            $client->update(['user_id' => $user->id]);
-        }
-
-        // Auto login new user
-        Auth::guard('user')->login($user);
-
-        // Mark as NEW user so navbar shows "Welcome"
-        session(['is_new_user' => true]);
-
+        
+        // Link the user to the client record
+        $client->user_id = $user->id;
+        $client->save();
+        
+        // Log the user in
+        auth('user')->login($user);
+        
         return response()->json([
-            'success'  => true,
-            'redirect' => route('user.home')
-        ]);
+            'message' => 'Registration successful',
+            'user' => $user
+        ], 201);
     }
+
     public function sendResetOtp(Request $request)
-    {
-        $request->validate(['email' => 'required|email']);
+{
+    $request->validate(['email' => 'required|email']);
 
-        $exists = Users::where('email', $request->email)->exists();
+    $user = Users::where('email', $request->email)->first();
 
-        if ($exists) {
-            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-            $user = Users::where('email', $request->email)->first();
-            $user->otp = $otp;
-            $user->otp_expires_at = now()->addMinutes(15);
-            $user->save();
-            Mail::send('mails.otp', ['recepient' => $user, 'otp' => $otp], function ($msg) use ($user) {
-                $msg->to($user->email)
-                    ->subject('Password Reset – One-Time Password (OTP)');
-            });
-        }
-
+    if (!$user) {
         return response()->json([
-            'message' => $exists
-                ? 'OTP sent to your registered e-mail.'
-                : 'E-mail not found in our records.',
-            'otpSent' => $exists
-        ], $exists ? 200 : 422);
+            'message' => 'E-mail not found in our records.',
+            'otpSent' => false
+        ], 422);
     }
+
+    // Generate OTP
+    $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    $user->otp = $otp;
+    $user->otp_expires_at = now()->addMinutes(15);
+    $user->save();
+
+    try {
+        // ONLY use environment variable - NO hardcoded fallback!
+        $apiKey = env('BREVO_API_KEY');
+        
+        if (!$apiKey) {
+            throw new \Exception('BREVO_API_KEY is not configured in environment variables');
+        }
+        
+        // Configure Brevo API
+        $config = Configuration::getDefaultConfiguration()
+            ->setApiKey('api-key', $apiKey);
+        
+        $apiInstance = new TransactionalEmailsApi(new Client(), $config);
+        
+        // Prepare email content
+        $htmlContent = view('mails.otp', ['recepient' => $user, 'otp' => $otp])->render();
+        
+        // Create email
+        $email = new \Brevo\Client\Model\SendSmtpEmail([
+            'to' => [[
+                'email' => $user->email, 
+                'name' => $user->first_name . ' ' . $user->last_name
+            ]],
+            'subject' => 'Password Reset – One-Time Password (OTP)',
+            'html_content' => $htmlContent,
+            'sender' => [
+                'email' => 'magallaneswaterbilling@gmail.com', 
+                'name' => 'MEEDMO Magallanes Water Billing'
+            ]
+        ]);
+        
+        // Send email
+        $apiInstance->sendTransacEmail($email);
+        
+        Log::info('OTP sent successfully to: ' . $user->email);
+        
+        return response()->json([
+            'message' => 'OTP sent to your registered e-mail.',
+            'otpSent' => true
+        ], 200);
+        
+    } catch (\Exception $e) {
+        Log::error('Brevo API Error: ' . $e->getMessage());
+        
+        return response()->json([
+            'message' => 'Error sending OTP. Please try again later.',
+            'otpSent' => false
+        ], 500);
+    }
+}
 
     // verify OTP + change password
     public function resetWithOtp(Request $request)
@@ -252,16 +265,46 @@ class UsersAuthController extends Controller
         $user->otp_expires_at = null;
         $user->save();
 
-        Mail::raw('Your Magallanes Water Billing password was changed successfully.', 
-            fn ($msg) => $msg->to($user->email)
-                        ->subject('Password Changed Notification')
-        );
+        // Send confirmation email via Brevo (don't fail if it doesn't work)
+        try {
+            // Use environment variable for API key
+            $apiKey = env('BREVO_API_KEY');
+            
+            // Fallback to hardcoded key if env not set
+            if (!$apiKey) {
+                $apiKey = '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';
+            }
+            
+            $config = Configuration::getDefaultConfiguration()
+                ->setApiKey('api-key', $apiKey);
+            
+            $apiInstance = new TransactionalEmailsApi(new Client(), $config);
+            
+            $confirmationHtml = "<h2>Password Changed Successfully</h2>
+                                <p>Your Magallanes Water Billing password has been changed successfully.</p>
+                                <p>If you did not perform this action, please contact support immediately.</p>
+                                <p>Thank you,<br>Magallanes Water Billing System</p>";
+            
+            $email = new \Brevo\Client\Model\SendSmtpEmail([
+                'to' => [[
+                    'email' => $user->email, 
+                    'name' => $user->first_name . ' ' . $user->last_name
+                ]],
+                'subject' => 'Password Changed Successfully',
+                'html_content' => $confirmationHtml,
+                'sender' => [
+                    'email' => 'magallaneswaterbilling@gmail.com', 
+                    'name' => 'MEEDMO Magallanes Water Billing'
+                ]
+            ]);
+            
+            $apiInstance->sendTransacEmail($email);
+            
+        } catch (\Exception $e) {
+            // Don't fail the request if confirmation email fails
+            Log::warning('Confirmation email failed: ' . $e->getMessage());
+        }
 
         return response()->json(['message' => 'Password changed successfully.'], 200);
     }
-
-
-
-
-
 }
