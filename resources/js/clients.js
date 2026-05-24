@@ -3,11 +3,18 @@ import Swal from 'sweetalert2';
 document.addEventListener("DOMContentLoaded", function () {
     // Check if we need to show Add Client Modal (any add-related error)
     const hasAddErrors = document.querySelector('#addClientModal .alert-danger') !== null;
-    const hasOldInput = document.querySelector('input[name="_method"]') === null && 
-                        document.querySelectorAll('#addClientModal input[value]').length > 0;
+    
+    // Only check for old input if values are actually filled (not empty defaults)
+    const addModalInputs = document.querySelectorAll('#addClientModal input[type="text"], #addClientModal input[type="email"]');
+    let hasOldInput = false;
+    addModalInputs.forEach(input => {
+        if (input.value && input.value.trim() !== '') {
+            hasOldInput = true;
+        }
+    });
 
-    // Show Add Client Modal if there are errors or old input (except success)
-    if (hasAddErrors || (hasOldInput && !document.querySelector('.alert-success'))) {
+    // Show Add Client Modal only if there are errors or actual old input
+    if (hasAddErrors || hasOldInput) {
         const addClientModalEl = document.getElementById('addClientModal');
         if (addClientModalEl) {
             setTimeout(() => {

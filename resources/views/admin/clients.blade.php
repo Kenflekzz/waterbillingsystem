@@ -10,6 +10,14 @@
         <li class="breadcrumb-item active">Clients</li>
     </ol>
 
+    {{-- Success Message --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show d-none" role="alert">
+            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     @if(session('error') && !session('add_client_error'))
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
@@ -408,4 +416,13 @@
     <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js"></script>
     <script src="{{ asset('admin/js/datatables-simple-demo.js') }}"></script>
     @vite('resources/js/clients.js')
+
+    @if($errors->any() && !old('_method') || session('duplicate_contact') || session('duplicate_meter') || session('duplicate_email') || session('add_client_error'))
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var addModal = new bootstrap.Modal(document.getElementById('addClientModal'));
+                addModal.show();
+            });
+        </script>
+    @endif
 @endsection
