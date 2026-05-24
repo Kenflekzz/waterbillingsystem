@@ -10,15 +10,6 @@
         <li class="breadcrumb-item active">Clients</li>
     </ol>
 
-    {{-- Success Message --}}
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
-    {{-- Edit/Update Error Messages --}}
     @if(session('error') && !session('add_client_error'))
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
@@ -69,6 +60,7 @@
                         <th>Meter Status</th>
                         <th>Replacement Date</th>
                         <th>Client Full Name</th>
+                        <th>Email</th>
                         <th>Barangay</th>
                         <th>Purok</th>
                         <th>Contact Number</th>
@@ -94,6 +86,13 @@
                             <td>{{ ucfirst($client->meter_status ?? 'old') }}</td>
                             <td>{{ $client->replacement_date ? \Carbon\Carbon::parse($client->replacement_date)->format('M d, Y') : '—' }}</td>
                             <td>{{ $client->full_name }}</td>
+                            <td>
+                                @if($client->email)
+                                    <a href="mailto:{{ $client->email }}" class="text-decoration-none">{{ $client->email }}</a>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
                             <td>{{ $client->barangay }}</td>
                             <td>{{ $client->purok }}</td>
                             <td>{{ $client->contact_number }}</td>
@@ -119,7 +118,7 @@
                                 <form action="{{ route('admin.clients.destroy', $client->id) }}" method="POST" class="d-inline delete-client-form">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete" onclick="return confirm('Are you sure you want to delete this client?');">
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete">
                                         <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </form>
@@ -147,6 +146,15 @@
                             <tr><th>Full Name</th><td>{{ $client->full_name }}</td></tr>
                             <tr><th>Meter No.</th><td>{{ $client->meter_no }}</td></tr>
                             <tr><th>Old Meter No.</th><td>{{ $client->old_meter_no ?? '—' }}</td></tr>
+                            <tr><th>Email</th>
+                                <td>
+                                    @if($client->email)
+                                        <a href="mailto:{{ $client->email }}">{{ $client->email }}</a>
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                            </tr>
                             <tr><th>Group</th><td>{{ $client->group }}</td></tr>
                             <tr><th>Barangay</th><td>{{ $client->barangay }}</td></tr>
                             <tr><th>Purok</th><td>{{ $client->purok }}</td></tr>
@@ -194,70 +202,56 @@
                             <div class="mb-3">
                                 <label class="form-label">Full Name</label>
                                 <input type="text" class="form-control @error('full_name') is-invalid @enderror" name="full_name" value="{{ old('full_name', $client->full_name) }}" required>
-                                @error('full_name')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('full_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Current Meter No.</label>
                                 <input type="text" class="form-control @error('meter_no') is-invalid @enderror" name="meter_no" value="{{ old('meter_no', $client->meter_no) }}" required>
-                                @error('meter_no')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('meter_no')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 @if($client->old_meter_no)
-                                    <div class="form-text text-muted">
-                                        Previous: <span class="text-decoration-line-through">{{ $client->old_meter_no }}</span>
-                                    </div>
+                                    <div class="form-text text-muted">Previous: <span class="text-decoration-line-through">{{ $client->old_meter_no }}</span></div>
                                 @endif
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email', $client->email) }}">
+                                @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="form-text text-muted">Optional: Used for user registration auto-fill</div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Group</label>
                                 <input type="text" class="form-control @error('group') is-invalid @enderror" name="group" value="{{ old('group', $client->group) }}" required>
-                                @error('group')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('group')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Barangay</label>
                                 <input type="text" class="form-control @error('barangay') is-invalid @enderror" name="barangay" value="{{ old('barangay', $client->barangay) }}" required>
-                                @error('barangay')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('barangay')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Purok</label>
                                 <input type="text" class="form-control @error('purok') is-invalid @enderror" name="purok" value="{{ old('purok', $client->purok) }}" required>
-                                @error('purok')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('purok')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Contact Number</label>
                                 <input type="text" class="form-control @error('contact_number') is-invalid @enderror" name="contact_number" value="{{ old('contact_number', $client->contact_number) }}" required>
-                                @error('contact_number')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('contact_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Date Cut</label>
                                 <input type="date" class="form-control @error('date_cut') is-invalid @enderror" name="date_cut" value="{{ old('date_cut', $client->date_cut) }}">
-                                @error('date_cut')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('date_cut')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Installation Date</label>
                                 <input type="date" class="form-control @error('installation_date') is-invalid @enderror" name="installation_date" value="{{ old('installation_date', $client->installation_date) }}" required>
-                                @error('installation_date')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('installation_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Meter Series</label>
                                 <input type="text" class="form-control @error('meter_series') is-invalid @enderror" name="meter_series" value="{{ old('meter_series', $client->meter_series) }}" required>
-                                @error('meter_series')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('meter_series')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Meter Status</label>
@@ -265,16 +259,12 @@
                                     <option value="old" {{ old('meter_status', $client->meter_status ?? 'old') === 'old' ? 'selected' : '' }}>Old</option>
                                     <option value="replacement" {{ old('meter_status', $client->meter_status ?? 'old') === 'replacement' ? 'selected' : '' }}>Replacement</option>
                                 </select>
-                                @error('meter_status')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('meter_status')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Replacement Date</label>
                                 <input type="date" class="form-control @error('replacement_date') is-invalid @enderror" name="replacement_date" value="{{ old('replacement_date', $client->replacement_date) }}">
-                                @error('replacement_date')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('replacement_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Status</label>
@@ -282,9 +272,7 @@
                                     <option value="CURC" {{ old('status', $client->status) == 'CURC' ? 'selected' : '' }}>CURC</option>
                                     <option value="CUT" {{ old('status', $client->status) == 'CUT' ? 'selected' : '' }}>CUT</option>
                                 </select>
-                                @error('status')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('status')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -309,7 +297,6 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        {{-- Validation Errors (Add Form Only) --}}
                         @if($errors->any() && !old('_method'))
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                 <strong><i class="fas fa-exclamation-triangle me-2"></i> Please correct the following errors:</strong>
@@ -322,7 +309,6 @@
                             </div>
                         @endif
 
-                        {{-- Database Duplicate Errors --}}
                         @if(session('duplicate_contact'))
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                 <strong><i class="fas fa-database me-2"></i> Database Error:</strong>
@@ -339,7 +325,14 @@
                             </div>
                         @endif
 
-                        {{-- General Database Error (Add Form Only) --}}
+                        @if(session('duplicate_email'))
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <strong><i class="fas fa-database me-2"></i> Database Error:</strong>
+                                The value '{{ session('duplicate_email') }}' already exists. Please use a unique email address.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        @endif
+
                         @if(session('add_client_error'))
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                 <strong><i class="fas fa-exclamation-circle me-2"></i> Error:</strong>
@@ -351,64 +344,51 @@
                         <div class="mb-3">
                             <label class="form-label">Full Name</label>
                             <input type="text" class="form-control @error('full_name') is-invalid @enderror" name="full_name" value="{{ old('full_name') }}" required>
-                            @error('full_name')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            @error('full_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Meter Number</label>
                             <input type="text" class="form-control @error('meter_no') is-invalid @enderror @if(session('duplicate_meter')) is-invalid @endif" name="meter_no" value="{{ old('meter_no') }}" required>
-                            @error('meter_no')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            @if(session('duplicate_meter'))
-                                <div class="invalid-feedback">This meter number is already registered.</div>
-                            @endif
+                            @error('meter_no')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @if(session('duplicate_meter'))<div class="invalid-feedback">This meter number is already registered.</div>@endif
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control @error('email') is-invalid @enderror @if(session('duplicate_email')) is-invalid @endif" name="email" value="{{ old('email') }}">
+                            @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @if(session('duplicate_email'))<div class="invalid-feedback">This email is already registered.</div>@endif
+                            <div class="form-text text-muted">Optional but recommended for user registration auto-fill</div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Group</label>
                             <input type="text" class="form-control @error('group') is-invalid @enderror" name="group" value="{{ old('group') }}" required>
-                            @error('group')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            @error('group')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Barangay</label>
                             <input type="text" class="form-control @error('barangay') is-invalid @enderror" name="barangay" value="{{ old('barangay') }}" required>
-                            @error('barangay')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            @error('barangay')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Purok</label>
                             <input type="text" class="form-control @error('purok') is-invalid @enderror" name="purok" value="{{ old('purok') }}" required>
-                            @error('purok')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            @error('purok')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Contact Number</label>
                             <input type="text" class="form-control @error('contact_number') is-invalid @enderror @if(session('duplicate_contact')) is-invalid @endif" name="contact_number" value="{{ old('contact_number') }}" required>
-                            @error('contact_number')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            @if(session('duplicate_contact'))
-                                <div class="invalid-feedback">This contact number is already registered.</div>
-                            @endif
+                            @error('contact_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @if(session('duplicate_contact'))<div class="invalid-feedback">This contact number is already registered.</div>@endif
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Installation Date</label>
                             <input type="date" class="form-control @error('installation_date') is-invalid @enderror" name="installation_date" value="{{ old('installation_date') }}">
-                            @error('installation_date')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            @error('installation_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Meter Series</label>
                             <input type="text" class="form-control @error('meter_series') is-invalid @enderror" name="meter_series" value="{{ old('meter_series') }}" required>
-                            @error('meter_series')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            @error('meter_series')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                     </div>
                     <div class="modal-footer">
