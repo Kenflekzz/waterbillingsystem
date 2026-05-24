@@ -25,6 +25,7 @@ class Clients extends Authenticatable
         'user_id',
         'meter_status',
         'replacement_date',
+        'email',
     ];
 
     protected static function booted(): void

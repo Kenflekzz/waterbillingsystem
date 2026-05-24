@@ -119,47 +119,54 @@ class ClientController extends Controller
         }
     }           
 
-    // Update the specified resource in storage.
     public function update(Request $request, Clients $client)
     {
         try {
             $validated = $request->validate([
-                'full_name' => 'required|string|max:255',
-                'meter_no' => 'required|string|max:255|unique:clients,meter_no,' . $client->id,
-                'email' => 'nullable|email|max:255|unique:clients,email,' . $client->id, // Added email validation
-                'group' => 'nullable|string|max:255',
-                'barangay' => 'nullable|string|max:255',
-                'purok' => 'nullable|string|max:255',
-                'contact_number' => 'required|string|max:11',
-                'date_cut' => 'nullable|date',
-                'installation_date' => 'nullable|date',
-                'meter_series' => 'nullable|string|max:255',
-                'replacement_date'  => 'nullable|date',                
-                'meter_status' => 'nullable|string|max:50',
-                'status' => 'nullable|string|max:50',
-            ],[
-                'meter_no.unique' => 'The meter number has already been taken.',
-                'email.unique' => 'This email address is already registered.',
-                'email.email' => 'Please enter a valid email address.',
+                'full_name'        => 'required|string|max:255',
+                'meter_no'         => 'required|string|max:255|unique:clients,meter_no,' . $client->id,
+                'new_meter_no'     => 'nullable|string|max:255|unique:clients,meter_no,' . $client->id,
+                'email'            => 'nullable|email|max:255|unique:clients,email,' . $client->id,
+                'group'            => 'nullable|string|max:255',
+                'barangay'         => 'nullable|string|max:255',
+                'purok'            => 'nullable|string|max:255',
+                'contact_number'   => 'required|string|max:11',
+                'date_cut'         => 'nullable|date',
+                'installation_date'=> 'nullable|date',
+                'meter_series'     => 'nullable|string|max:255',
+                'replacement_date' => 'nullable|date',
+                'meter_status'     => 'nullable|string|max:50',
+                'status'           => 'nullable|string|max:50',
+            ], [
+                'meter_no.unique'     => 'The meter number has already been taken.',
+                'new_meter_no.unique' => 'The new meter number has already been taken.',
+                'email.unique'        => 'This email address is already registered.',
+                'email.email'         => 'Please enter a valid email address.',
             ]);
 
-            // old_meter_no is automatically handled by the model's booted() method
+            // Handle meter replacement
+            if ($request->meter_status === 'replacement' && $request->filled('new_meter_no')) {
+                $validated['old_meter_no'] = $client->meter_no; // current becomes old
+                $validated['meter_no']     = $request->new_meter_no; // new becomes current
+                unset($validated['new_meter_no']); // remove from validated, not a column
+            }
+
             $client->update($validated);
 
-            return redirect()->route('admin.clients.index')->with('success', 'Client updated successfully. Meter number synchronized.');
-            
+            return redirect()->route('admin.clients.index')
+                ->with('success', 'Client updated successfully.');
+
         } catch (ValidationException $e) {
             return redirect()->back()
                 ->withErrors($e->validator)
                 ->withInput();
         } catch (QueryException $e) {
-            // Check for duplicate email in update
             if (str_contains($e->getMessage(), 'clients_email_unique')) {
                 return redirect()->back()
                     ->with('error', 'This email address is already registered to another client.')
                     ->withInput();
             }
-            
+
             return redirect()->back()
                 ->with('error', 'Database error: ' . $this->getFriendlyErrorMessage($e))
                 ->withInput();

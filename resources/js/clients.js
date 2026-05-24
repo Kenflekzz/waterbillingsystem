@@ -95,3 +95,60 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 });
+
+// Dynamic meter replacement field in Edit Modal
+document.addEventListener('shown.bs.modal', function (e) {
+    if (e.target.id && e.target.id.startsWith('editClientModal')) {
+        const modal = e.target;
+        const meterStatusSelect = modal.querySelector('select[name="meter_status"]');
+        
+        if (meterStatusSelect) {
+            // Initial check on modal open
+            toggleNewMeterField(modal, meterStatusSelect.value);
+            
+            // Listen for changes
+            meterStatusSelect.addEventListener('change', function () {
+                toggleNewMeterField(modal, this.value);
+            });
+        }
+    }
+});
+
+function toggleNewMeterField(modal, status) {
+    // Remove existing new meter field if any
+    const existing = modal.querySelector('.new-meter-field');
+    if (existing) existing.remove();
+
+    if (status === 'replacement') {
+        // Find the meter_no field container to insert after
+        const meterNoInput = modal.querySelector('input[name="meter_no"]');
+        const meterNoContainer = meterNoInput.closest('.mb-3');
+
+        // Create new meter number field
+        const newField = document.createElement('div');
+        newField.className = 'mb-3 new-meter-field';
+        newField.innerHTML = `
+            <label class="form-label fw-bold text-primary">
+                New Meter Number 
+                <span class="badge bg-warning text-dark ms-1">Replacement</span>
+            </label>
+            <input 
+                type="text" 
+                class="form-control border-primary" 
+                name="new_meter_no" 
+                placeholder="Enter new meter number"
+                required
+            >
+            <div class="form-text text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                Current meter <strong>${meterNoInput.value}</strong> will be moved to Old Meter No.
+            </div>
+        `;
+
+        // Insert after meter_no field
+        meterNoContainer.insertAdjacentElement('afterend', newField);
+
+        // Focus the new field
+        newField.querySelector('input').focus();
+    }
+}
