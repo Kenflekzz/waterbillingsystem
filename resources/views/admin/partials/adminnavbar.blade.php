@@ -4,9 +4,9 @@
 <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
 
 <a class="navbar-brand ps-3 d-flex align-items-center" >
-   {{--<img src="{{ asset('images/MAGALLANES_LOGO.png') }}" 
+   <img src="{{ asset('images/MAGALLANES_LOGO.png') }}" 
          alt="Logo" 
-         style="height: 35px; width: auto; margin-right: 10px;">--}}
+         style="height: 35px; width: auto; margin-right: 10px;">
     <span>Water Billing System </span>
 </a>
 
