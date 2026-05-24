@@ -166,9 +166,9 @@ class UsersAuthController extends Controller
         // Log the user in
         auth('user')->login($user);
         
-        return response()->json([
-            'message' => 'Registration successful',
-            'user' => $user
+       return response()->json([
+            'success' => true,
+            'redirect' => route('user.home')
         ], 201);
     }
 

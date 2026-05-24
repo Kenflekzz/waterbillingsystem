@@ -377,7 +377,7 @@ export default {
 
         // Redirect after registration
         setTimeout(() => {
-          window.location.href = '/user/dashboard';
+          window.location.href = '/user/home';
         }, 1500);
 
       } catch (err) {

@@ -29,6 +29,7 @@ use App\Http\Controllers\DisconnectPendingController;
 use App\Http\Controllers\ConsumptionReportController;
 use App\Http\Controllers\FlowReadingController;
 use App\Http\Controllers\IotDeviceController;
+use App\Http\Controllers\MeterLookupController;
 // --------------------
 // Home Route
 // --------------------
@@ -50,6 +51,8 @@ Route::get('read-waterbill', function () {
 // --------------------
 // User Routes
 // --------------------
+
+Route::get('/api/meter/{meter_number}', [MeterLookupController::class, 'lookup']);
 
 
 // --------------------
