@@ -9,8 +9,11 @@ class EnsureIsDisconnectSeenIsDate extends Migration
     public function up()
     {
         Schema::table('clients', function (Blueprint $table) {
-            // Ensure the column is of type DATE and nullable
-            $table->date('is_disconnect_seen')->nullable()->change();
+            if (!Schema::hasColumn('clients', 'is_disconnect_seen')) {
+                $table->date('is_disconnect_seen')->nullable();
+            } else {
+                $table->date('is_disconnect_seen')->nullable()->change();
+            }
         });
     }
 

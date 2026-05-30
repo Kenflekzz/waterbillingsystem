@@ -41,16 +41,16 @@ services:
     env_file:
       - .env.docker
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: laravel
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: secret
     volumes:
       - db-data:/var/lib/mysql
     networks:
       - laravel
     ports:
-      - "3307:3306"   # changed to 3307 to avoid XAMPP MySQL conflict
+      - "3307:3306"
 
 networks:
   laravel:
